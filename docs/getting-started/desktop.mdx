@@ -11,10 +11,32 @@ install, and no `pgconsole.toml` required — connections are managed from the U
 
 Build on Windows. `electron-builder`'s Windows targets need a Windows toolchain.
 
-```bash
+**Prerequisites**
+
+| | Why |
+|--|--|
+| **Node.js 22.5+** | The config store uses the built-in `node:sqlite` module |
+| **pnpm 10** | `pnpm-lock.yaml` is lockfile v9. Newer pnpm may not apply the `vite` → `rolldown-vite` override this repo depends on |
+| **Git** | The build stamps the commit hash |
+
+```powershell
+npm install -g pnpm@10
+git clone https://github.com/Dhruv-Patel-29/pgconsole_ia.git
+cd pgconsole_ia
 pnpm install
 pnpm dist:win
 ```
+
+No Visual Studio or Python is needed — every native dependency ships a prebuilt binary.
+
+`pnpm install` runs the install scripts for `electron`, `esbuild`, `@bufbuild/buf`, and
+`@launchql/protobufjs`, which fetch platform binaries. pnpm 10 blocks dependency install
+scripts by default, so these four are allowlisted under `pnpm.onlyBuiltDependencies` in
+`package.json`. Without that, `pnpm gen` fails with a missing `buf` binary. If you add a
+dependency that needs an install script, add it there too.
+
+The first `pnpm dist:win` also downloads the Electron binary distribution (~100 MB) and the
+NSIS toolchain, and caches both — later builds are much faster.
 
 Output lands in `release/`:
 

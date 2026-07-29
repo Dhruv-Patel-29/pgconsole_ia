@@ -1,4 +1,8 @@
 import path from 'path'
+// Aliased for the same reason as nodeCreateRequire below: the esbuild banner already
+// declares a top-level `fileURLToPath`, and a second declaration of that name is a
+// SyntaxError at load time.
+import { fileURLToPath as toFilePath } from 'url'
 import { createRequire as nodeCreateRequire } from 'module'
 
 /**
@@ -30,6 +34,12 @@ process.env.PGCONSOLE_EMBEDDED = '1'
 process.env.PGCONSOLE_DATA_DIR ??= app.getPath('userData')
 
 // The bundled main process lives in electron/dist/, so the server's default
-// `__dirname/client` would miss the built SPA in dist/client. app.getAppPath() is the
-// app root both when packaged (…/resources/app.asar) and when run from source.
-process.env.PGCONSOLE_CLIENT_DIR ??= path.join(app.getAppPath(), 'dist', 'client')
+// `__dirname/client` would miss the built SPA in dist/client.
+//
+// Resolved relative to this bundle rather than app.getAppPath(), which is only the project
+// root when a directory is passed to electron — running the entry file directly (as
+// `pnpm electron:dev` does) makes it electron/dist and yields dist/dist/client. The layout
+// electron/dist/main.mjs → ../../dist/client holds both from source and inside app.asar,
+// since electron-builder preserves both paths.
+const bundleDir = path.dirname(toFilePath(import.meta.url))
+process.env.PGCONSOLE_CLIENT_DIR ??= path.resolve(bundleDir, '..', '..', 'dist', 'client')

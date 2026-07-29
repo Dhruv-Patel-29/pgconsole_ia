@@ -51,3 +51,6 @@ mac:
 linux:
   target: [AppImage]
   category: Development
+  # Linux defaults executableName to package.json `name`, which is scoped — without this
+  # the binary is named "@pgplexpgconsole". Windows and macOS use productName already.
+  executableName: pgconsole
