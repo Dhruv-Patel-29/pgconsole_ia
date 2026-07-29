@@ -5,11 +5,24 @@ export interface CachedSchemaInfo {
   lastUpdated: number // Timestamp
 }
 
-// Cache: connectionId -> schema info
+// Cache: "connectionId\0database" -> schema info.
+//
+// Keyed by database as well as connection because one connection can browse many
+// databases (see buildConnectionDetails). Keying on connection alone would serve the
+// previously-viewed database's schema as AI context after a database switch — wrong
+// answers with no error to signal it.
 const schemaCache = new Map<string, CachedSchemaInfo>()
 
-export async function getSchemaCache(connectionId: string): Promise<CachedSchemaInfo | null> {
-  return schemaCache.get(connectionId) || null
+function cacheKey(connectionId: string, database: string): string {
+  // NUL can't appear in a Postgres identifier, so it can't be confused for part of either.
+  return `${connectionId}\0${database}`
+}
+
+export async function getSchemaCache(
+  connectionId: string,
+  database: string
+): Promise<CachedSchemaInfo | null> {
+  return schemaCache.get(cacheKey(connectionId, database)) || null
 }
 
 export async function refreshSchemaCache(
@@ -24,15 +37,24 @@ export async function refreshSchemaCache(
     formatted,
     lastUpdated: Date.now(),
   }
-  schemaCache.set(connectionId, cached)
+  // The database comes from the resolved details, so the entry is always filed under the
+  // database actually queried rather than whatever the caller believed it was.
+  schemaCache.set(cacheKey(connectionId, connectionDetails.database), cached)
   return cached
 }
 
+/**
+ * Drop cached schema context. With no connectionId, clears everything; with one, clears
+ * every database belonging to that connection.
+ */
 export function clearSchemaCache(connectionId?: string): void {
-  if (connectionId) {
-    schemaCache.delete(connectionId)
-  } else {
+  if (!connectionId) {
     schemaCache.clear()
+    return
+  }
+  const prefix = `${connectionId}\0`
+  for (const key of schemaCache.keys()) {
+    if (key.startsWith(prefix)) schemaCache.delete(key)
   }
 }
 

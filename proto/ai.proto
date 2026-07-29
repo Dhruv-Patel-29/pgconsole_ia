@@ -10,6 +10,11 @@ service AIService {
   rpc RewriteSQL(RewriteSQLRequest) returns (RewriteSQLResponse);
   rpc RefreshSchemaCache(RefreshSchemaCacheRequest) returns (RefreshSchemaCacheResponse);
   rpc AssessChangeRisk(AssessChangeRiskRequest) returns (AssessChangeRiskResponse);
+  rpc ListVendorModels(ListVendorModelsRequest) returns (ListVendorModelsResponse);
+  rpc CreateAIProvider(CreateAIProviderRequest) returns (CreateAIProviderResponse);
+  rpc UpdateAIProvider(UpdateAIProviderRequest) returns (UpdateAIProviderResponse);
+  rpc DeleteAIProvider(DeleteAIProviderRequest) returns (DeleteAIProviderResponse);
+  rpc TestAIProvider(TestAIProviderRequest) returns (TestAIProviderResponse);
 }
 
 message AIProvider {
@@ -17,6 +22,76 @@ message AIProvider {
   string name = 2;
   string vendor = 3;
   string model = 4;
+  // "toml" (operator-managed, read-only here) or "store" (editable from the UI).
+  string source = 5;
+  string base_url = 6;
+  // Whether a key is on file. The key itself is never returned.
+  bool has_api_key = 7;
+}
+
+// Shared shape for create and update. api_key is write-only: send it to set or change a
+// key, omit it to leave the stored one untouched, send "" to clear it.
+message AIProviderInput {
+  string id = 1;
+  string name = 2;
+  string vendor = 3;
+  string model = 4;
+  string base_url = 5;
+  optional string api_key = 6;
+}
+
+message CreateAIProviderRequest {
+  AIProviderInput provider = 1;
+}
+
+message CreateAIProviderResponse {
+  AIProvider provider = 1;
+}
+
+message UpdateAIProviderRequest {
+  AIProviderInput provider = 1;
+}
+
+message UpdateAIProviderResponse {
+  AIProvider provider = 1;
+}
+
+message DeleteAIProviderRequest {
+  string id = 1;
+}
+
+message DeleteAIProviderResponse {}
+
+// Validate credentials and model with a minimal round-trip before saving. Accepts
+// unsaved form input, or a provider_id to re-test something already stored.
+message TestAIProviderRequest {
+  string vendor = 1;
+  string model = 2;
+  string base_url = 3;
+  optional string api_key = 4;
+  string provider_id = 5;
+}
+
+message TestAIProviderResponse {
+  bool success = 1;
+  string error = 2;
+  int32 latency_ms = 3;
+}
+
+// Discover the models an OpenAI-wire provider advertises, so the settings UI can offer
+// a dropdown instead of a free-text model field. Instance-owner only.
+message ListVendorModelsRequest {
+  string vendor = 1;
+  // Optional. Ignored for ollama-cloud, which always uses its fixed endpoint.
+  string base_url = 2;
+  // Key for an unsaved provider being configured. Omit and set provider_id instead to
+  // reuse an already-stored key without sending it back over the wire.
+  string api_key = 3;
+  string provider_id = 4;
+}
+
+message ListVendorModelsResponse {
+  repeated string models = 1;
 }
 
 message ListAIProvidersRequest {}
@@ -31,6 +106,8 @@ message GenerateSQLRequest {
   string prompt = 3;
   repeated string schemas = 4; // Empty means current schema only
   string session_id = 5; // Optional, empty on first message
+  // Database the schema context should describe. Empty uses the connection default.
+  string database = 6;
 }
 
 message GenerateSQLResponse {
@@ -45,6 +122,8 @@ message ExplainSQLRequest {
   string sql = 3; // The SQL query to explain
   repeated string schemas = 4; // Schema context
   string session_id = 5; // Optional, empty on first message
+  // Database the schema context should describe. Empty uses the connection default.
+  string database = 6;
 }
 
 message ExplainSQLResponse {
@@ -59,6 +138,8 @@ message FixSQLRequest {
   string sql = 3; // The SQL with syntax error
   string error_message = 4; // The syntax error message
   repeated string schemas = 5; // Schema context
+  // Database the schema context should describe. Empty uses the connection default.
+  string database = 6;
 }
 
 message FixSQLResponse {
@@ -71,6 +152,8 @@ message RewriteSQLRequest {
   string provider_id = 2;
   string sql = 3; // The SQL to rewrite and improve
   repeated string schemas = 4; // Schema context
+  // Database the schema context should describe. Empty uses the connection default.
+  string database = 5;
 }
 
 message RewriteSQLResponse {
@@ -81,6 +164,8 @@ message RewriteSQLResponse {
 message RefreshSchemaCacheRequest {
   string connection_id = 1;
   repeated string schemas = 2; // Empty means all non-system schemas
+  // Database the schema context should describe. Empty uses the connection default.
+  string database = 3;
 }
 
 message RefreshSchemaCacheResponse {
@@ -93,6 +178,8 @@ message AssessChangeRiskRequest {
   string provider_id = 2;
   repeated string sql_statements = 3;
   repeated string schemas = 4;
+  // Database the schema context should describe. Empty uses the connection default.
+  string database = 5;
 }
 
 message RiskFinding {

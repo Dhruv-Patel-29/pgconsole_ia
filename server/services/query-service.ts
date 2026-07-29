@@ -1,10 +1,10 @@
 import { ConnectError, Code } from "@connectrpc/connect";
 import type { ServiceImpl } from "@connectrpc/connect";
 import { QueryService } from "../../src/gen/query_connect";
-import { getConnectionById, isOwner } from "../lib/config";
-import { createClient, formatAppName, buildConnectionDetails, type ConnectionDetails } from "../lib/db";
+import { isOwner } from "../lib/config";
+import { createClient, formatAppName, buildConnectionDetails, DatabaseNotAllowedError, type ConnectionDetails } from "../lib/db";
 import type postgres from "postgres";
-import { getUserFromContext } from "../connect";
+import { getUserFromContext } from "../lib/rpc-context";
 import { hasPermission, requirePermission, requirePermissions, requireAnyPermission } from "../lib/iam";
 import { detectRequiredPermissions } from "../lib/sql-permissions";
 import { buildExecutableSql, formatExecutionError } from "../lib/execute-sql";
@@ -37,8 +37,18 @@ function toAuditLogEntry(event: AuditEvent) {
   };
 }
 
-function getConnectionDetails(connectionId: string): ConnectionDetails {
-  const details = buildConnectionDetails(connectionId);
+// `database` selects which database on the connection's server to run against; see
+// buildConnectionDetails, which rejects an override the connection didn't opt into.
+function getConnectionDetails(connectionId: string, database?: string): ConnectionDetails {
+  let details: ConnectionDetails | null;
+  try {
+    details = buildConnectionDetails(connectionId, database);
+  } catch (err) {
+    if (err instanceof DatabaseNotAllowedError) {
+      throw new ConnectError(err.message, Code.InvalidArgument);
+    }
+    throw err;
+  }
   if (!details) {
     throw new ConnectError("Connection not found", Code.NotFound);
   }
@@ -174,7 +184,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     }
     requirePermissions(user, req.connectionId, analysis.permissions, `execute query`);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
     const queryId = req.queryId;
     const client = createClient(details, user.email);
 
@@ -355,7 +365,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const schemas = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -381,7 +391,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const tables = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -413,7 +423,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const columns = await withConnection(details, async (sql) => {
       // Use pg_attribute directly to support tables, views, AND materialized views
@@ -480,7 +490,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const metadata = await withConnection(details, async (sql) => {
       // Get metadata from pg_catalog for tables, views, and materialized views
@@ -553,7 +563,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const indexes = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -602,7 +612,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const result = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -694,7 +704,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const triggers = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -750,7 +760,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const policies = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -803,7 +813,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const grants = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -838,7 +848,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const materializedViews = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -866,7 +876,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const functions = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -906,7 +916,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const procedures = await withConnection(details, async (sql) => {
       const rows = await sql`
@@ -947,7 +957,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const metadata = await withConnection(details, async (sql) => {
       // Get function/procedure metadata and definition
@@ -1018,7 +1028,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     const dependencies = await withConnection(details, async (sql) => {
       const filterByArgs = req.arguments !== undefined && req.arguments !== '';
@@ -1130,7 +1140,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requireAnyPermission(user, req.connectionId);
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
     const isAdmin = user ? hasPermission(user.email, req.connectionId, 'admin') : false;
     const userAppName = user ? formatAppName(user.email) : null;
 
@@ -1196,7 +1206,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
     const user = await getUserFromContext(context.values);
     requirePermission(user, req.connectionId, 'admin', 'terminate session');
 
-    const details = getConnectionDetails(req.connectionId);
+    const details = getConnectionDetails(req.connectionId, req.database);
 
     try {
       const result = await withConnection(details, async (sql) => {
@@ -1220,7 +1230,7 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
 
     const user = await getUserFromContext(context.values);
     requirePermission(user, req.connectionId, 'admin', 'view audit log');
-    getConnectionDetails(req.connectionId);
+    getConnectionDetails(req.connectionId, req.database);
 
     const limit = req.limit > 0 ? Math.min(req.limit, AUDIT_LOG_FETCH_LIMIT) : AUDIT_LOG_DEFAULT_LIMIT;
     const entries = listAuditEvents(req.connectionId, limit).map(toAuditLogEntry);
@@ -1256,12 +1266,11 @@ export const queryServiceHandlers: ServiceImpl<typeof QueryService> = {
       throw new ConnectError('Authentication required', Code.Unauthenticated);
     }
 
-    const conn = getConnectionById(req.connectionId);
-    if (!conn) {
-      throw new ConnectError("Connection not found", Code.NotFound);
-    }
+    // Resolve rather than reading conn.database directly, so the audit entry names the
+    // database the export actually ran against and not the connection's default.
+    const details = getConnectionDetails(req.connectionId, req.database);
 
-    auditExport(user.email, req.connectionId, conn.database, req.sql, req.rowCount, req.format);
+    auditExport(user.email, req.connectionId, details.database, req.sql, req.rowCount, req.format);
 
     return {};
   },

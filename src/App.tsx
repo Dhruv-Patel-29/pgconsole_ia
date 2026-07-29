@@ -6,6 +6,7 @@ import Header from './components/Header';
 import { useSession } from './lib/auth-client';
 import { SQLEditorLayout } from './components/sql-editor';
 import AuditLog from './pages/AuditLog';
+import Settings from './pages/Settings';
 import { useConnections } from './hooks/useQuery';
 import { ToastProvider, toastManager } from './components/ui/toast';
 import { useEditorTabs } from './components/sql-editor/hooks/useEditorTabs';
@@ -14,6 +15,7 @@ import { Button } from './components/ui/button';
 import { Banner } from './components/Banner';
 import { useSetting } from './hooks/useSetting';
 import { DemoBanner } from './components/DemoBanner';
+import { SelectedDatabaseProvider } from './components/SelectedDatabaseProvider';
 
 function AppLayout() {
   const { user, isPending: sessionPending, serverError, authEnabled } = useSession();
@@ -143,6 +145,7 @@ function AppLayout() {
             <Route path="/audit-log" element={
               <AuditLog connectionId={selectedConnectionId} />
             } />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/signin" element={
               <div className="flex flex-1 items-center justify-center">
                 <SignIn />
@@ -159,7 +162,10 @@ function AppLayout() {
 function App() {
   return (
     <BrowserRouter>
-      <AppLayout />
+      {/* Inside the router: the provider reads the `database` search param. */}
+      <SelectedDatabaseProvider>
+        <AppLayout />
+      </SelectedDatabaseProvider>
     </BrowserRouter>
   );
 }

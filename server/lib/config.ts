@@ -1,12 +1,25 @@
 import { parse } from 'smol-toml'
 import { readFileSync } from 'fs'
 import type { Vendor } from '../ai/vendors'
+import {
+  isStoreOpen,
+  listStoredConnections,
+  getStoredConnection,
+  listStoredAIProviders,
+  getStoredAIProvider,
+  listStoredLabels,
+  type StoredConnection,
+  type StoredAIProvider,
+} from './store'
 
 export interface LabelConfig {
   id: string
   name: string
   color: string
 }
+
+/** Where a merged config entry came from. TOML entries are read-only in the UI. */
+export type ConfigSource = 'toml' | 'store'
 
 export interface ConnectionConfig {
   id: string
@@ -25,6 +38,14 @@ export interface ConnectionConfig {
   lock_timeout?: string
   statement_timeout?: string
   lazy?: boolean
+  source?: ConfigSource
+  /** Server-group id; only set for store-backed connections. */
+  group_id?: string
+  /**
+   * Browse every database on the server rather than just `database` (pgAdmin's model).
+   * Opt-in, because it widens what an IAM grant on this connection reaches.
+   */
+  all_databases?: boolean
 }
 
 export interface UserConfig {
@@ -53,6 +74,9 @@ export interface AIProviderConfig {
   model: string
   api_key?: string  // Optional for openai-compatible (keyless local providers); required otherwise
   base_url?: string  // Required for openai-compatible; ignored otherwise
+  source?: ConfigSource
+  /** True when a key is stored but not currently decryptable (store locked). */
+  hasApiKey?: boolean
 }
 
 export interface AIConfig {
@@ -567,7 +591,7 @@ export async function loadConfigFromString(content: string): Promise<void> {
   if (rawAI?.providers && Array.isArray(rawAI.providers)) {
     const providers: AIProviderConfig[] = []
     const seenProviderIds = new Set<string>()
-    const validVendors: Vendor[] = ['openai', 'anthropic', 'google', 'openai-compatible']
+    const validVendors: Vendor[] = ['openai', 'anthropic', 'google', 'openai-compatible', 'ollama-cloud']
 
     for (const provider of rawAI.providers) {
       const p = provider as Record<string, unknown>
@@ -584,8 +608,8 @@ export async function loadConfigFromString(content: string): Promise<void> {
       if (!p.model || typeof p.model !== 'string') {
         throw new Error(`AI provider ${p.id} missing required field: model`)
       }
-      // api_key is required for hosted vendors but optional for openai-compatible, since
-      // local providers (Ollama, vLLM) run without authentication
+      // api_key is required for hosted vendors — including ollama-cloud — but optional for
+      // openai-compatible, since local providers (Ollama, vLLM) run without authentication
       if (p.api_key !== undefined && typeof p.api_key !== 'string') {
         throw new Error(`AI provider ${p.id} field api_key must be a string`)
       }
@@ -594,15 +618,19 @@ export async function loadConfigFromString(content: string): Promise<void> {
         throw new Error(`AI provider ${p.id} missing required field: api_key`)
       }
 
-      // base_url is required for openai-compatible providers and must be a valid http(s) URL
+      // base_url is required for openai-compatible providers and must be a valid http(s) URL.
+      // ollama-cloud accepts an override but defaults to OLLAMA_CLOUD_BASE_URL.
       let baseUrl: string | undefined = undefined
-      if (p.vendor === 'openai-compatible') {
+      if (p.vendor === 'openai-compatible' || p.vendor === 'ollama-cloud') {
         const trimmedBaseUrl = typeof p.base_url === 'string' ? p.base_url.trim() : ''
         if (!trimmedBaseUrl) {
-          throw new Error(`AI provider ${p.id} with vendor openai-compatible requires field: base_url`)
+          if (p.vendor === 'openai-compatible') {
+            throw new Error(`AI provider ${p.id} with vendor openai-compatible requires field: base_url`)
+          }
+        } else {
+          validateHttpUrl(trimmedBaseUrl, `AI provider ${p.id} base_url`)
+          baseUrl = trimmedBaseUrl
         }
-        validateHttpUrl(trimmedBaseUrl, `AI provider ${p.id} base_url`)
-        baseUrl = trimmedBaseUrl
       }
 
       const providerId = p.id.trim()
@@ -771,8 +799,73 @@ export async function loadConfigFromString(content: string): Promise<void> {
   loadedConfig = { external_url, banner, branding, audit, users, groups, labels, connections, auth, ai, agents, iam }
 }
 
+// ---------------------------------------------------------------------------
+// TOML + store merge
+//
+// pgconsole.toml stays authoritative: on an id collision the TOML entry wins and the
+// store row is shadowed. Creation paths validate against both namespaces, so a
+// collision here means the TOML file gained an id the store already used — an operator
+// action, worth a warning rather than a silent swap.
+// ---------------------------------------------------------------------------
+
+const warnedCollisions = new Set<string>()
+
+function warnCollisionOnce(kind: string, id: string): void {
+  const key = `${kind}:${id}`
+  if (warnedCollisions.has(key)) return
+  warnedCollisions.add(key)
+  console.warn(
+    `⚠ ${kind} "${id}" is defined in both pgconsole.toml and the UI store — the pgconsole.toml entry wins.`
+  )
+}
+
+function storedConnectionToConfig(c: StoredConnection): ConnectionConfig {
+  return {
+    id: c.id,
+    name: c.name,
+    host: c.host,
+    port: c.port,
+    database: c.database,
+    username: c.username,
+    password: c.password,
+    ssl_mode: c.ssl_mode,
+    ssl_ca: c.ssl_ca,
+    ssl_cert: c.ssl_cert,
+    ssl_key: c.ssl_key,
+    color: c.color,
+    labels: c.labels,
+    lock_timeout: c.lock_timeout,
+    statement_timeout: c.statement_timeout,
+    // Store connections are added while the server is running, so they can't take part
+    // in the boot-time connectivity check and must not fail startup.
+    lazy: true,
+    source: 'store',
+    group_id: c.group_id,
+    all_databases: c.all_databases,
+  }
+}
+
+function storedProviderToConfig(p: StoredAIProvider): AIProviderConfig {
+  return {
+    id: p.id,
+    name: p.name,
+    vendor: p.vendor,
+    model: p.model,
+    api_key: p.api_key,
+    base_url: p.base_url,
+    source: 'store',
+    hasApiKey: p.hasApiKey,
+  }
+}
+
 export function getLabels(): LabelConfig[] {
-  return loadedConfig.labels
+  const tomlLabels = loadedConfig.labels
+  if (!isStoreOpen()) return tomlLabels
+  const tomlIds = new Set(tomlLabels.map((l) => l.id))
+  const stored = listStoredLabels()
+    .filter((l) => !tomlIds.has(l.id))
+    .map((l) => ({ id: l.id, name: l.name, color: l.color ?? '' }))
+  return [...tomlLabels, ...stored]
 }
 
 export function getGroups(): GroupConfig[] {
@@ -787,12 +880,32 @@ export function getGroupsForUser(email: string): GroupConfig[] {
   return loadedConfig.groups.filter((g) => g.members.includes(email))
 }
 
+/** TOML-defined connections only. Used by the boot-time connectivity check. */
+export function getTomlConnections(): ConnectionConfig[] {
+  return loadedConfig.connections.map((c) => ({ ...c, source: 'toml' as const }))
+}
+
 export function getConnections(): ConnectionConfig[] {
-  return loadedConfig.connections
+  const toml = getTomlConnections()
+  if (!isStoreOpen()) return toml
+  const tomlIds = new Set(toml.map((c) => c.id))
+  const stored: ConnectionConfig[] = []
+  for (const c of listStoredConnections()) {
+    if (tomlIds.has(c.id)) {
+      warnCollisionOnce('Connection', c.id)
+      continue
+    }
+    stored.push(storedConnectionToConfig(c))
+  }
+  return [...toml, ...stored]
 }
 
 export function getConnectionById(id: string): ConnectionConfig | undefined {
-  return loadedConfig.connections.find((c) => c.id === id)
+  const toml = loadedConfig.connections.find((c) => c.id === id)
+  if (toml) return { ...toml, source: 'toml' }
+  if (!isStoreOpen()) return undefined
+  const stored = getStoredConnection(id)
+  return stored ? storedConnectionToConfig(stored) : undefined
 }
 
 export function getAuthConfig(): AuthConfig | undefined {
@@ -840,11 +953,26 @@ export function getAIConfig(): AIConfig | undefined {
 }
 
 export function getAIProviders(): AIProviderConfig[] {
-  return loadedConfig.ai?.providers ?? []
+  const toml = (loadedConfig.ai?.providers ?? []).map((p) => ({ ...p, source: 'toml' as const, hasApiKey: !!p.api_key }))
+  if (!isStoreOpen()) return toml
+  const tomlIds = new Set(toml.map((p) => p.id))
+  const stored: AIProviderConfig[] = []
+  for (const p of listStoredAIProviders()) {
+    if (tomlIds.has(p.id)) {
+      warnCollisionOnce('AI provider', p.id)
+      continue
+    }
+    stored.push(storedProviderToConfig(p))
+  }
+  return [...toml, ...stored]
 }
 
 export function getAIProviderById(id: string): AIProviderConfig | undefined {
-  return loadedConfig.ai?.providers.find((p) => p.id === id)
+  const toml = loadedConfig.ai?.providers.find((p) => p.id === id)
+  if (toml) return { ...toml, source: 'toml', hasApiKey: !!toml.api_key }
+  if (!isStoreOpen()) return undefined
+  const stored = getStoredAIProvider(id)
+  return stored ? storedProviderToConfig(stored) : undefined
 }
 
 export function getAgents(): AgentConfig[] {

@@ -1,0 +1,65 @@
+name: Desktop Build
+
+# Produces the Windows installer and portable .exe. Runs on windows-latest because
+# electron-builder's Windows targets need a Windows toolchain (or Wine on Linux, which we
+# avoid) to sign and pack NSIS output.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+    branches: [main]
+    paths:
+      - "electron/**"
+      - "electron-builder.yml"
+      - "scripts/build-electron.mjs"
+      - "server/**"
+      - ".github/workflows/desktop.yml"
+
+jobs:
+  windows:
+    name: Windows (x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # node:sqlite needs >= 22.5; Electron 38 bundles its own Node, but the build
+          # scripts run on this one.
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build desktop bundles
+        run: pnpm build:desktop
+        env:
+          GIT_COMMIT: ${{ github.sha }}
+
+      # Packs without publishing. Unsigned output triggers SmartScreen on first run —
+      # see docs/getting-started/desktop.mdx.
+      - name: Package Windows installer and portable exe
+        run: pnpm exec electron-builder --win --config electron-builder.yml --publish never
+        env:
+          GIT_COMMIT: ${{ github.sha }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgconsole-windows-x64
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/latest.yml
+          if-no-files-found: error

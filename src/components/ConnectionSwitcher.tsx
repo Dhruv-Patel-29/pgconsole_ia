@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Database, AlertCircle, Loader2, Activity } from 'lucide-react'
+import { ChevronDown, Database, AlertCircle, Loader2, Activity, Settings } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipPopup } from './ui/tooltip'
 import { Menu, MenuTrigger, MenuPopup, MenuItem, MenuSeparator } from './ui/menu'
 import { Button } from './ui/button'
@@ -88,8 +88,11 @@ export function ConnectionSwitcher({ selectedConnectionId }: ConnectionSwitcherP
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Database size={14} />
         <span>No connections</span>
+        <Button variant="outline" size="sm" onClick={() => navigate('/settings')}>
+          <Settings size={14} /> Add a connection
+        </Button>
         <span className="text-xs">
-          (Check{' '}
+          (or check{' '}
           <a
             href="https://docs.pgconsole.com/configuration/iam-permissions"
             target="_blank"
@@ -210,6 +213,10 @@ export function ConnectionSwitcher({ selectedConnectionId }: ConnectionSwitcherP
         <MenuItem closeOnClick={false} onClick={handlePing} disabled={isPinging}>
           {isPinging ? <Loader2 size={14} className="animate-spin" /> : <Activity size={14} />}
           <span>Ping</span>
+        </MenuItem>
+        <MenuItem onClick={() => navigate('/settings')}>
+          <Settings size={14} />
+          <span>Manage connections</span>
         </MenuItem>
         <MenuSeparator />
         {connections.map((conn) => {

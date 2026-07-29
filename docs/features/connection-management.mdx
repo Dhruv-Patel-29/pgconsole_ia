@@ -1,0 +1,81 @@
+---
+title: "Connection Management"
+description: "Add and edit PostgreSQL connections from the UI, and browse every database on a server."
+---
+
+Connections can come from two places, and both appear together in the connection picker:
+
+| Source | Where it lives | Editable in the UI |
+|--------|----------------|--------------------|
+| **Managed** | `pgconsole.toml` | No — edit the file |
+| **UI** | The config store (`pgconsole.db`) | Yes |
+
+This is additive. Adding UI-managed connections changes nothing about an existing
+TOML-driven deployment, and IAM rules keep working exactly as before. If the same `id`
+appears in both, the `pgconsole.toml` entry wins and a warning is logged.
+
+## Adding a connection
+
+Go to **Settings → Connections → New connection**. The dialog has four tabs, mirroring
+pgAdmin's server dialog:
+
+- **General** — id, display name, server group, and an optional header colour so a
+  production server is obvious at a glance.
+- **Connection** — host, port, database, username, password, and whether to browse all
+  databases on the server.
+- **SSL** — SSL mode and certificate paths.
+- **Advanced** — `lock_timeout` and `statement_timeout`.
+
+**Test** verifies the parameters before you save, so a typo surfaces immediately rather
+than on first query.
+
+<Note>
+The connection **id** cannot be changed after creation. IAM rules and saved URLs reference
+it.
+</Note>
+
+### Saving passwords
+
+Storing a password requires a [master password](/getting-started/desktop#master-password)
+(or `PGCONSOLE_SECRET_KEY`). Passwords are encrypted at rest with AES-256-GCM and are never
+returned to the browser — the UI only ever learns *whether* a password is on file.
+
+Leaving the password field blank when editing keeps the stored one unchanged.
+
+## Browsing all databases on a server
+
+By default a connection points at exactly one database. Turn on **Browse all databases on
+this server** to treat it as a server instead, pgAdmin-style: the database field becomes the
+*maintenance database* (used to connect and enumerate the rest), and a database picker
+appears in the header next to the connection name.
+
+<Warning>
+This widens access. Anyone who can use the connection can read **every** database on that
+host, not just the one configured. It is off by default, and existing connections are
+unaffected until you explicitly enable it.
+</Warning>
+
+Permissions stay **per-server**: databases inherit the connection's IAM grant. There are no
+per-database grants — an IAM rule applies to the whole server.
+
+Switching database resets the object tree and the AI schema context, and adds a `database`
+parameter to the URL. Selecting the configured default removes the parameter again, so
+single-database connections keep the URLs they always had.
+
+## Server groups
+
+Groups organise connections in the picker. Deleting a group does not delete its connections
+— they simply become ungrouped.
+
+## Audit
+
+Every create, update, and delete is written to the [audit log](/features/audit-log) as a
+`config.change` event recording the actor and which object changed. Secret values are never
+recorded. These are instance-wide events, so they appear in the **System** tab.
+
+## Permissions
+
+Managing connections and AI providers requires being an **instance owner** — the same gate
+as the system audit log. When authentication is disabled (the desktop app, or a local
+server with no `[auth]` section) there is no owner to check and the single local operator
+can manage everything, consistent with how IAM already grants full access in that mode.

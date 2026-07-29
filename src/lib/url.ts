@@ -2,6 +2,11 @@ import type { ObjectType } from '@/components/sql-editor/ObjectTree'
 
 export interface EditorUrlParams {
   connectionId: string
+  /**
+   * Database on the connection's server. Omitted when it's the connection's configured
+   * default, so single-database connections keep the URLs they had before.
+   */
+  database?: string
   schema?: string
   object?: {
     name: string
@@ -25,6 +30,10 @@ export function buildEditorSearchParams(params: EditorUrlParams): URLSearchParam
   const searchParams = new URLSearchParams()
 
   searchParams.set('connectionId', params.connectionId)
+
+  if (params.database) {
+    searchParams.set('database', params.database)
+  }
 
   if (params.schema) {
     searchParams.set('schema', params.schema)

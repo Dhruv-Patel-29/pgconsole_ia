@@ -1,0 +1,101 @@
+---
+title: "Desktop App (Windows)"
+description: "Build and run pgconsole as a native Windows application."
+---
+
+pgconsole ships as a desktop app in addition to the server. The desktop build wraps the
+same Express server and SPA in an Electron shell, so there is no Docker, no separate Node
+install, and no `pgconsole.toml` required — connections are managed from the UI.
+
+## Building the installer
+
+Build on Windows. `electron-builder`'s Windows targets need a Windows toolchain.
+
+```bash
+pnpm install
+pnpm dist:win
+```
+
+Output lands in `release/`:
+
+| File | What it is |
+|------|-----------|
+| `pgconsole-<version>-x64.exe` | NSIS installer — Start Menu and desktop shortcuts, per-user install |
+| `pgconsole-<version>-x64.exe` (portable) | Single-file portable executable, no installation |
+
+To iterate without packaging:
+
+```bash
+pnpm electron:dev      # build everything, then launch the app
+pnpm dist:win:dir      # pack to release/win-unpacked/ without building an installer
+```
+
+## Where data is stored
+
+The desktop app keeps its configuration store in the per-user data directory:
+
+```
+%APPDATA%\pgconsole\pgconsole.db
+```
+
+That SQLite database holds connections, server groups, and AI providers. Passwords and API
+keys inside it are encrypted with AES-256-GCM using a key derived from your
+[master password](#master-password). Override the location with `PGCONSOLE_DATA_DIR`.
+
+## Master password
+
+Before pgconsole will save a database password or an AI provider API key, you set a master
+password under **Settings → Security**. The encryption key is derived from it with scrypt;
+the password itself is never stored.
+
+<Warning>
+There is no recovery if you lose the master password. Saved credentials would have to be
+re-entered.
+</Warning>
+
+On later launches the store starts locked. Connections without a saved password remain
+usable; anything needing a stored secret prompts you to unlock first.
+
+For headless or automated use, set `PGCONSOLE_SECRET_KEY` to a 32-byte key (64 hex
+characters, or base64) instead. When it is set, no master password is needed.
+
+## Using a config file
+
+The desktop app does not need `pgconsole.toml`, but it will honour one:
+
+```bash
+set PGCONSOLE_CONFIG_PATH=C:\path\to\pgconsole.toml
+```
+
+TOML-defined connections and AI providers appear in the UI marked **managed** and are
+read-only there — edit the file to change them. Anything you create in the UI is stored
+separately and stays editable. See [Configuration](/configuration/config).
+
+## SmartScreen warning
+
+The generated `.exe` is unsigned, so Windows SmartScreen shows "Windows protected your PC"
+on first run. Choose **More info → Run anyway**.
+
+To remove the warning you need an Authenticode code-signing certificate, then set
+`CSC_LINK` and `CSC_KEY_PASSWORD` before running `pnpm dist:win`. Certificate procurement
+is a purchasing decision, not a build step.
+
+## Notes for maintainers
+
+- **Electron must bundle Node 22.5 or newer.** The config store uses the built-in
+  `node:sqlite` module. The app asserts this at startup and fails with a clear message
+  rather than a missing-module error deep in the boot sequence.
+- **`node-linker=hoisted` is set in `.npmrc`.** `electron-builder` cannot follow pnpm's
+  symlinked `node_modules` when collecting the native and WASM packages listed under
+  `asarUnpack`. The trade-off is that hoisted installs are less strict about undeclared
+  dependencies.
+- **Keep `asarUnpack` in sync with the esbuild externals.** `scripts/build-electron.mjs`
+  leaves `pg`, `postgres`, `@libpg-query/parser`, and the PGlite packages external because
+  they ship `.node` or `.wasm` files that cannot load from inside an asar archive, so they
+  must be unpacked to real files. Adding a new native dependency means updating both lists.
+- **The renderer has no Node access.** It is an ordinary web client talking HTTP to
+  `127.0.0.1`, so `nodeIntegration` is off, `contextIsolation` is on, and no preload bridge
+  or IPC layer is needed — including for SQLite, which lives on the server side of that
+  boundary.
+- The server binds loopback only and takes an OS-assigned port, so the desktop app never
+  exposes anything on the network.

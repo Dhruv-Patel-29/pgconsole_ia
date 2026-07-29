@@ -2,14 +2,17 @@ import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSchemas, queryKeys } from './useQuery'
 import { schemaStore } from '../lib/schema-store'
+import { useSelectedDatabase } from '../lib/database-context'
 
 export function useSchemaStoreSync(connectionId: string, selectedSchema: string | null) {
   const queryClient = useQueryClient()
+  const database = useSelectedDatabase()
 
-  // Sync connection ID
+  // Sync connection and database. Switching either resets the store, since a different
+  // database has entirely unrelated schemas.
   useEffect(() => {
-    schemaStore.setConnection(connectionId)
-  }, [connectionId])
+    schemaStore.setConnection(connectionId, database)
+  }, [connectionId, database])
 
   // Sync selected schema
   useEffect(() => {
@@ -28,17 +31,17 @@ export function useSchemaStoreSync(connectionId: string, selectedSchema: string 
       // Pre-fetch tables, functions, and procedures for all schemas
       for (const schema of schemas) {
         queryClient.prefetchQuery({
-          queryKey: queryKeys.tables(connectionId, schema),
+          queryKey: queryKeys.tables(connectionId, schema, database),
         })
         queryClient.prefetchQuery({
-          queryKey: queryKeys.functions(connectionId, schema),
+          queryKey: queryKeys.functions(connectionId, schema, database),
         })
         queryClient.prefetchQuery({
-          queryKey: queryKeys.procedures(connectionId, schema),
+          queryKey: queryKeys.procedures(connectionId, schema, database),
         })
       }
     }
-  }, [schemas, connectionId, queryClient])
+  }, [schemas, connectionId, database, queryClient])
 
   // Sync tables, functions, and procedures as they load
   useEffect(() => {
@@ -91,6 +94,6 @@ export function useSchemaStoreSync(connectionId: string, selectedSchema: string 
     })
 
     return () => unsubscribe()
-  }, [schemas, connectionId, queryClient])
+  }, [schemas, connectionId, database, queryClient])
 
 }

@@ -1,10 +1,29 @@
 import { ConnectError, Code } from '@connectrpc/connect'
-import { getIAMRules, getGroupsForUser, isAuthEnabled } from './config'
+import { getIAMRules, getGroupsForUser, isAuthEnabled, isOwner } from './config'
 import type { Permission, AgentConfig, IAMRule } from './config'
 
 export type { Permission }
 
 const ALL_PERMISSIONS: Permission[] = ['read', 'write', 'ddl', 'admin', 'explain', 'execute', 'export']
+
+/**
+ * Throws unless the principal may administer instance-level settings (AI providers,
+ * connections, and other config that isn't scoped to a single connection).
+ *
+ * Instance-level, so it is gated on the instance owner rather than per-connection
+ * `admin` — the same reasoning as the system audit log. With auth disabled there is
+ * no owner to check and the single local operator is the only principal, so everyone
+ * qualifies; that mirrors how IAM already grants full access when auth is off.
+ */
+export function requireInstanceAdmin(user: { email: string } | null, action: string): void {
+  if (!isAuthEnabled()) return
+  if (!user) {
+    throw new ConnectError('Authentication required', Code.Unauthenticated)
+  }
+  if (!isOwner(user.email)) {
+    throw new ConnectError(`Permission denied: ${action} requires instance owner`, Code.PermissionDenied)
+  }
+}
 
 /**
  * Throws if user lacks the specified permission for a connection.

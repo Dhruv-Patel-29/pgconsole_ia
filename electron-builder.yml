@@ -1,0 +1,53 @@
+appId: com.infoanalytica.pgconsole
+productName: pgconsole
+copyright: Copyright © InfoAnalytica
+
+directories:
+  output: release
+  buildResources: build
+
+# Ship only what the app actually loads at runtime: the bundled Electron main, the
+# bundled server, the built SPA, and node_modules for the externals below.
+files:
+  - electron/dist/**
+  - dist/**
+  - package.json
+  - '!**/*.map'
+  - '!**/node_modules/**/{test,tests,__tests__,example,examples,doc,docs}/**'
+
+# These packages ship .node binaries or .wasm that cannot be loaded from inside an asar
+# archive, and scripts/build-electron.mjs leaves them external — so they must exist as
+# real files on disk. Keep this list in sync with the `external` array there.
+asarUnpack:
+  - '**/node_modules/@libpg-query/**'
+  - '**/node_modules/@electric-sql/pglite/**'
+  - '**/node_modules/@electric-sql/pglite-socket/**'
+  - '**/node_modules/pg/**'
+  - '**/node_modules/pg-*/**'
+  - '**/node_modules/postgres/**'
+
+win:
+  # x64 only for now; add arm64 here if you need it.
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  artifactName: '${productName}-${version}-${arch}.${ext}'
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: pgconsole
+
+# macOS and Linux are configured but untested — Windows is the requested target.
+mac:
+  target: [dmg]
+  category: public.app-category.developer-tools
+
+linux:
+  target: [AppImage]
+  category: Development

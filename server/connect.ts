@@ -3,18 +3,17 @@ import type { Request } from "express";
 import { ConnectionService } from "../src/gen/connection_connect";
 import { QueryService } from "../src/gen/query_connect";
 import { AIService } from "../src/gen/ai_connect";
+import { SettingsService } from "../src/gen/settings_connect";
 import { connectionServiceHandlers } from "./services/connection-service";
 import { queryServiceHandlers } from "./services/query-service";
 import { aiServiceHandlers } from "./services/ai-service";
+import { settingsServiceHandlers } from "./services/settings-service";
 import { getCurrentUser, type User } from "./lib/auth";
 import { isAuthEnabled } from "./lib/config";
 
-// Helper to get user from ConnectRPC context
-// Note: contextValues may be a Promise if contextValues factory is async
-export async function getUserFromContext(contextValues: Map<string, unknown> | Promise<Map<string, unknown>>): Promise<User | null> {
-  const values = await contextValues
-  return (values.get('user') as User | null) ?? null
-}
+// Re-exported for existing importers. New code should import from ./lib/rpc-context
+// directly — importing it from here pulls in the router and risks an import cycle.
+export { getUserFromContext } from "./lib/rpc-context";
 
 // Guest user when auth is disabled
 const GUEST_USER: User = { email: 'guest', name: 'Guest' }
@@ -28,6 +27,7 @@ export const connectRouter = expressConnectMiddleware({
     router.service(ConnectionService, connectionServiceHandlers);
     router.service(QueryService, queryServiceHandlers);
     router.service(AIService, aiServiceHandlers);
+    router.service(SettingsService, settingsServiceHandlers);
   },
   // Set max message size to ~4GB for large query results
   readMaxBytes: 0xffffffff,

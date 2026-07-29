@@ -31,6 +31,9 @@ message ExecuteSQLRequest {
   string sql = 2;
   string query_id = 3; // Unique ID to track and cancel this query
   string search_path = 4; // PostgreSQL search_path (e.g., "myschema, public")
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 5;
 }
 
 message ExecuteSQLResponse {
@@ -59,6 +62,9 @@ message ColumnMetadata {
 message CancelQueryRequest {
   string connection_id = 1;
   string query_id = 2;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 3;
 }
 
 message CancelQueryResponse {
@@ -68,6 +74,9 @@ message CancelQueryResponse {
 
 message GetSchemasRequest {
   string connection_id = 1;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 2;
 }
 
 message GetSchemasResponse {
@@ -77,6 +86,9 @@ message GetSchemasResponse {
 message GetTablesRequest {
   string connection_id = 1;
   string schema = 2;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 3;
 }
 
 message GetTablesResponse {
@@ -92,6 +104,9 @@ message GetColumnsRequest {
   string connection_id = 1;
   string schema = 2;
   string table = 3;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 4;
 }
 
 message GetColumnsResponse {
@@ -111,6 +126,9 @@ message GetTableInfoRequest {
   string connection_id = 1;
   string schema = 2;
   string table = 3;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 4;
 }
 
 message GetTableInfoResponse {
@@ -144,6 +162,9 @@ message GetIndexesRequest {
   string connection_id = 1;
   string schema = 2;
   string table = 3;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 4;
 }
 
 message GetIndexesResponse {
@@ -164,6 +185,9 @@ message GetConstraintsRequest {
   string connection_id = 1;
   string schema = 2;
   string table = 3;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 4;
 }
 
 message GetConstraintsResponse {
@@ -185,6 +209,9 @@ message GetTriggersRequest {
   string connection_id = 1;
   string schema = 2;
   string table = 3;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 4;
 }
 
 message GetTriggersResponse {
@@ -205,6 +232,9 @@ message GetPoliciesRequest {
   string connection_id = 1;
   string schema = 2;
   string table = 3;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 4;
 }
 
 message GetPoliciesResponse {
@@ -222,6 +252,9 @@ message GetGrantsRequest {
   string connection_id = 1;
   string schema = 2;
   string table = 3;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 4;
 }
 
 message GetGrantsResponse {
@@ -236,6 +269,9 @@ message MaterializedViewInfo {
 message GetMaterializedViewsRequest {
   string connection_id = 1;
   string schema = 2;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 3;
 }
 
 message GetMaterializedViewsResponse {
@@ -252,6 +288,9 @@ message FunctionInfo {
 message GetFunctionsRequest {
   string connection_id = 1;
   string schema = 2;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 3;
 }
 
 message GetFunctionsResponse {
@@ -267,6 +306,9 @@ message ProcedureInfo {
 message GetProceduresRequest {
   string connection_id = 1;
   string schema = 2;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 3;
 }
 
 message GetProceduresResponse {
@@ -279,6 +321,9 @@ message GetFunctionInfoRequest {
   string schema = 2;
   string name = 3;
   string arguments = 4;  // For identifying specific overload
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 5;
 }
 
 message GetFunctionInfoResponse {
@@ -303,6 +348,9 @@ message GetFunctionDependenciesRequest {
   string schema = 2;
   string name = 3;
   string arguments = 4;  // For identifying specific overload
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 5;
 }
 
 message GetFunctionDependenciesResponse {
@@ -331,6 +379,9 @@ message ActiveSession {
 
 message GetActiveSessionsRequest {
   string connection_id = 1;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 2;
 }
 
 message GetActiveSessionsResponse {
@@ -341,6 +392,9 @@ message GetActiveSessionsResponse {
 message TerminateSessionRequest {
   string connection_id = 1;
   int32 pid = 2;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 3;
 }
 
 message TerminateSessionResponse {
@@ -351,6 +405,9 @@ message TerminateSessionResponse {
 message GetAuditLogEntriesRequest {
   string connection_id = 1;
   int32 limit = 2;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 3;
 }
 
 message GetAuditLogEntriesResponse {
@@ -391,6 +448,9 @@ message AuditExportRequest {
   string sql = 2;
   int32 row_count = 3;
   string format = 4;
+  // Database on the connection's server to run against. Empty uses the
+  // connection's configured database; a different value requires all_databases.
+  string database = 5;
 }
 
 message AuditExportResponse {}

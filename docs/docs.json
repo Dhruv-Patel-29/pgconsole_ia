@@ -18,6 +18,7 @@
         "pages": [
           "getting-started/introduction",
           "getting-started/quickstart",
+          "getting-started/desktop",
           "getting-started/faq"
         ]
       },
@@ -25,6 +26,7 @@
         "group": "Features",
         "pages": [
           "features/sql-editor",
+          "features/connection-management",
           "features/database-access-control",
           "features/ai-assistant",
           "features/mcp-server",
@@ -62,7 +64,13 @@
     "dark": "/logo/dark-full.svg"
   },
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude", "perplexity"]
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity"
+    ]
   },
   "navbar": {
     "links": [

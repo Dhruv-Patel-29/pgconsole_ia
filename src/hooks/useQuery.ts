@@ -2,26 +2,27 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { queryClient, connectionClient, aiClient } from '../lib/connect-client';
 import { AUDIT_LOG_FETCH_LIMIT, LIVE_QUERY_REFETCH_INTERVAL_MS } from '../lib/constants';
 import type { ColumnMetadata } from '../components/sql-editor/hooks/useEditorTabs';
+import { useSelectedDatabase } from '../lib/database-context';
 
 // Query keys
 export const queryKeys = {
   all: ['query'] as const,
-  schemas: (connectionId: string) => [...queryKeys.all, 'schemas', connectionId] as const,
-  tables: (connectionId: string, schema: string) => [...queryKeys.all, 'tables', connectionId, schema] as const,
-  columns: (connectionId: string, schema: string, table: string) => [...queryKeys.all, 'columns', connectionId, schema, table] as const,
-  tableInfo: (connectionId: string, schema: string, table: string) => [...queryKeys.all, 'tableInfo', connectionId, schema, table] as const,
-  indexes: (connectionId: string, schema: string, table: string) => [...queryKeys.all, 'indexes', connectionId, schema, table] as const,
-  constraints: (connectionId: string, schema: string, table: string) => [...queryKeys.all, 'constraints', connectionId, schema, table] as const,
-  triggers: (connectionId: string, schema: string, table: string) => [...queryKeys.all, 'triggers', connectionId, schema, table] as const,
-  policies: (connectionId: string, schema: string, table: string) => [...queryKeys.all, 'policies', connectionId, schema, table] as const,
-  grants: (connectionId: string, schema: string, table: string) => [...queryKeys.all, 'grants', connectionId, schema, table] as const,
-  materializedViews: (connectionId: string, schema: string) => [...queryKeys.all, 'materializedViews', connectionId, schema] as const,
-  functions: (connectionId: string, schema: string) => [...queryKeys.all, 'functions', connectionId, schema] as const,
-  procedures: (connectionId: string, schema: string) => [...queryKeys.all, 'procedures', connectionId, schema] as const,
-  functionInfo: (connectionId: string, schema: string, name: string, args?: string) => [...queryKeys.all, 'functionInfo', connectionId, schema, name, args] as const,
-  functionDependencies: (connectionId: string, schema: string, name: string, args?: string) => [...queryKeys.all, 'functionDependencies', connectionId, schema, name, args] as const,
-  processes: (connectionId: string) => [...queryKeys.all, 'processes', connectionId] as const,
-  auditLog: (connectionId: string) => [...queryKeys.all, 'auditLog', connectionId] as const,
+  schemas: (connectionId: string, database = '') => [...queryKeys.all, 'schemas', connectionId, database] as const,
+  tables: (connectionId: string, schema: string, database = '') => [...queryKeys.all, 'tables', connectionId, schema, database] as const,
+  columns: (connectionId: string, schema: string, table: string, database = '') => [...queryKeys.all, 'columns', connectionId, schema, table, database] as const,
+  tableInfo: (connectionId: string, schema: string, table: string, database = '') => [...queryKeys.all, 'tableInfo', connectionId, schema, table, database] as const,
+  indexes: (connectionId: string, schema: string, table: string, database = '') => [...queryKeys.all, 'indexes', connectionId, schema, table, database] as const,
+  constraints: (connectionId: string, schema: string, table: string, database = '') => [...queryKeys.all, 'constraints', connectionId, schema, table, database] as const,
+  triggers: (connectionId: string, schema: string, table: string, database = '') => [...queryKeys.all, 'triggers', connectionId, schema, table, database] as const,
+  policies: (connectionId: string, schema: string, table: string, database = '') => [...queryKeys.all, 'policies', connectionId, schema, table, database] as const,
+  grants: (connectionId: string, schema: string, table: string, database = '') => [...queryKeys.all, 'grants', connectionId, schema, table, database] as const,
+  materializedViews: (connectionId: string, schema: string, database = '') => [...queryKeys.all, 'materializedViews', connectionId, schema, database] as const,
+  functions: (connectionId: string, schema: string, database = '') => [...queryKeys.all, 'functions', connectionId, schema, database] as const,
+  procedures: (connectionId: string, schema: string, database = '') => [...queryKeys.all, 'procedures', connectionId, schema, database] as const,
+  functionInfo: (connectionId: string, schema: string, name: string, args?: string, database = '') => [...queryKeys.all, 'functionInfo', connectionId, schema, name, args, database] as const,
+  functionDependencies: (connectionId: string, schema: string, name: string, args?: string, database = '') => [...queryKeys.all, 'functionDependencies', connectionId, schema, name, args, database] as const,
+  processes: (connectionId: string, database = '') => [...queryKeys.all, 'processes', connectionId, database] as const,
+  auditLog: (connectionId: string, database = '') => [...queryKeys.all, 'auditLog', connectionId, database] as const,
   systemAuditLog: () => [...queryKeys.all, 'systemAuditLog'] as const,
 };
 
@@ -42,10 +43,11 @@ export const connectionKeys = {
 
 // Get schemas for a connection
 export function useSchemas(connectionId: string, enabled = true) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.schemas(connectionId),
+    queryKey: queryKeys.schemas(connectionId, database),
     queryFn: async () => {
-      const response = await queryClient.getSchemas({ connectionId });
+      const response = await queryClient.getSchemas({ connectionId, database });
       return response.schemas;
     },
     enabled: enabled && !!connectionId,
@@ -54,10 +56,11 @@ export function useSchemas(connectionId: string, enabled = true) {
 
 // Get tables for a schema
 export function useTables(connectionId: string, schema: string, enabled = true) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.tables(connectionId, schema),
+    queryKey: queryKeys.tables(connectionId, schema, database),
     queryFn: async () => {
-      const response = await queryClient.getTables({ connectionId, schema });
+      const response = await queryClient.getTables({ connectionId, schema, database });
       return response.tables;
     },
     enabled: enabled && !!connectionId && !!schema,
@@ -66,10 +69,11 @@ export function useTables(connectionId: string, schema: string, enabled = true) 
 
 // Get columns for a table
 export function useColumns(connectionId: string, schema: string, table: string) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.columns(connectionId, schema, table),
+    queryKey: queryKeys.columns(connectionId, schema, table, database),
     queryFn: async () => {
-      const response = await queryClient.getColumns({ connectionId, schema, table });
+      const response = await queryClient.getColumns({ connectionId, schema, table, database });
       return response.columns;
     },
     enabled: !!connectionId && !!schema && !!table,
@@ -78,10 +82,11 @@ export function useColumns(connectionId: string, schema: string, table: string) 
 
 // Get table metadata (owner, size, encoding, collation, etc.)
 export function useTableInfo(connectionId: string, schema: string, table: string) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.tableInfo(connectionId, schema, table),
+    queryKey: queryKeys.tableInfo(connectionId, schema, table, database),
     queryFn: async () => {
-      const response = await queryClient.getTableInfo({ connectionId, schema, table });
+      const response = await queryClient.getTableInfo({ connectionId, schema, table, database });
       return response.metadata;
     },
     enabled: !!connectionId && !!schema && !!table,
@@ -90,10 +95,11 @@ export function useTableInfo(connectionId: string, schema: string, table: string
 
 // Get indexes for a table
 export function useIndexes(connectionId: string, schema: string, table: string, enabled = true) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.indexes(connectionId, schema, table),
+    queryKey: queryKeys.indexes(connectionId, schema, table, database),
     queryFn: async () => {
-      const response = await queryClient.getIndexes({ connectionId, schema, table });
+      const response = await queryClient.getIndexes({ connectionId, schema, table, database });
       return response.indexes;
     },
     enabled: enabled && !!connectionId && !!schema && !!table,
@@ -102,10 +108,11 @@ export function useIndexes(connectionId: string, schema: string, table: string, 
 
 // Get constraints for a table (includes reverse FKs in referencedBy)
 export function useConstraints(connectionId: string, schema: string, table: string, enabled = true) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.constraints(connectionId, schema, table),
+    queryKey: queryKeys.constraints(connectionId, schema, table, database),
     queryFn: async () => {
-      const response = await queryClient.getConstraints({ connectionId, schema, table });
+      const response = await queryClient.getConstraints({ connectionId, schema, table, database });
       return { constraints: response.constraints, referencedBy: response.referencedBy };
     },
     enabled: enabled && !!connectionId && !!schema && !!table,
@@ -114,10 +121,11 @@ export function useConstraints(connectionId: string, schema: string, table: stri
 
 // Get triggers for a table
 export function useTriggers(connectionId: string, schema: string, table: string, enabled = true) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.triggers(connectionId, schema, table),
+    queryKey: queryKeys.triggers(connectionId, schema, table, database),
     queryFn: async () => {
-      const response = await queryClient.getTriggers({ connectionId, schema, table });
+      const response = await queryClient.getTriggers({ connectionId, schema, table, database });
       return response.triggers;
     },
     enabled: enabled && !!connectionId && !!schema && !!table,
@@ -126,10 +134,11 @@ export function useTriggers(connectionId: string, schema: string, table: string,
 
 // Get policies for a table
 export function usePolicies(connectionId: string, schema: string, table: string, enabled = true) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.policies(connectionId, schema, table),
+    queryKey: queryKeys.policies(connectionId, schema, table, database),
     queryFn: async () => {
-      const response = await queryClient.getPolicies({ connectionId, schema, table });
+      const response = await queryClient.getPolicies({ connectionId, schema, table, database });
       return response.policies;
     },
     enabled: enabled && !!connectionId && !!schema && !!table,
@@ -138,10 +147,11 @@ export function usePolicies(connectionId: string, schema: string, table: string,
 
 // Get grants for a table
 export function useGrants(connectionId: string, schema: string, table: string, enabled = true) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.grants(connectionId, schema, table),
+    queryKey: queryKeys.grants(connectionId, schema, table, database),
     queryFn: async () => {
-      const response = await queryClient.getGrants({ connectionId, schema, table });
+      const response = await queryClient.getGrants({ connectionId, schema, table, database });
       return response.grants;
     },
     enabled: enabled && !!connectionId && !!schema && !!table,
@@ -150,10 +160,11 @@ export function useGrants(connectionId: string, schema: string, table: string, e
 
 // Get materialized views for a schema
 export function useMaterializedViews(connectionId: string, schema: string) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.materializedViews(connectionId, schema),
+    queryKey: queryKeys.materializedViews(connectionId, schema, database),
     queryFn: async () => {
-      const response = await queryClient.getMaterializedViews({ connectionId, schema });
+      const response = await queryClient.getMaterializedViews({ connectionId, schema, database });
       return response.materializedViews;
     },
     enabled: !!connectionId && !!schema,
@@ -162,10 +173,11 @@ export function useMaterializedViews(connectionId: string, schema: string) {
 
 // Get functions for a schema
 export function useFunctions(connectionId: string, schema: string) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.functions(connectionId, schema),
+    queryKey: queryKeys.functions(connectionId, schema, database),
     queryFn: async () => {
-      const response = await queryClient.getFunctions({ connectionId, schema });
+      const response = await queryClient.getFunctions({ connectionId, schema, database });
       return response.functions;
     },
     enabled: !!connectionId && !!schema,
@@ -174,10 +186,11 @@ export function useFunctions(connectionId: string, schema: string) {
 
 // Get procedures for a schema
 export function useProcedures(connectionId: string, schema: string) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.procedures(connectionId, schema),
+    queryKey: queryKeys.procedures(connectionId, schema, database),
     queryFn: async () => {
-      const response = await queryClient.getProcedures({ connectionId, schema });
+      const response = await queryClient.getProcedures({ connectionId, schema, database });
       return response.procedures;
     },
     enabled: !!connectionId && !!schema,
@@ -186,10 +199,11 @@ export function useProcedures(connectionId: string, schema: string) {
 
 // Get function/procedure info (detailed metadata + definition)
 export function useFunctionInfo(connectionId: string, schema: string, name: string, args?: string) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.functionInfo(connectionId, schema, name, args),
+    queryKey: queryKeys.functionInfo(connectionId, schema, name, args, database),
     queryFn: async () => {
-      const response = await queryClient.getFunctionInfo({ connectionId, schema, name, arguments: args });
+      const response = await queryClient.getFunctionInfo({ connectionId, schema, name, arguments: args, database });
       return response.metadata;
     },
     enabled: !!connectionId && !!schema && !!name,
@@ -198,10 +212,11 @@ export function useFunctionInfo(connectionId: string, schema: string, name: stri
 
 // Get function/procedure dependencies
 export function useFunctionDependencies(connectionId: string, schema: string, name: string, args?: string) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.functionDependencies(connectionId, schema, name, args),
+    queryKey: queryKeys.functionDependencies(connectionId, schema, name, args, database),
     queryFn: async () => {
-      const response = await queryClient.getFunctionDependencies({ connectionId, schema, name, arguments: args });
+      const response = await queryClient.getFunctionDependencies({ connectionId, schema, name, arguments: args, database });
       return response.dependencies;
     },
     enabled: !!connectionId && !!schema && !!name,
@@ -210,6 +225,7 @@ export function useFunctionDependencies(connectionId: string, schema: string, na
 
 // Execute SQL (streaming - first message has PID, last has results)
 export function useExecuteSQL() {
+  const database = useSelectedDatabase();
   return useMutation({
     mutationFn: async ({
       connectionId,
@@ -234,7 +250,7 @@ export function useExecuteSQL() {
       } | null = null;
 
       // Iterate over the stream
-      for await (const response of queryClient.executeSQL({ connectionId, sql, queryId, searchPath })) {
+      for await (const response of queryClient.executeSQL({ connectionId, sql, queryId, searchPath, database })) {
         // First message contains just the PID
         if (response.backendPid && onPid && response.columns.length === 0 && !response.error) {
           onPid(response.backendPid);
@@ -278,9 +294,10 @@ export function useExecuteSQL() {
 
 // Cancel a running query
 export function useCancelQuery() {
+  const database = useSelectedDatabase();
   return useMutation({
     mutationFn: async ({ connectionId, queryId }: { connectionId: string; queryId: string }) => {
-      const response = await queryClient.cancelQuery({ connectionId, queryId });
+      const response = await queryClient.cancelQuery({ connectionId, queryId, database });
       return {
         cancelled: response.cancelled,
         error: response.error,
@@ -302,10 +319,11 @@ export function useConnections() {
 
 // Get active processes for a connection
 export function useActiveProcesses(connectionId: string, enabled = true) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.processes(connectionId),
+    queryKey: queryKeys.processes(connectionId, database),
     queryFn: async () => {
-      const response = await queryClient.getActiveSessions({ connectionId });
+      const response = await queryClient.getActiveSessions({ connectionId, database });
       if (response.error) throw new Error(response.error);
       return response.sessions;
     },
@@ -316,24 +334,26 @@ export function useActiveProcesses(connectionId: string, enabled = true) {
 
 // Terminate a process
 export function useTerminateProcess() {
+  const database = useSelectedDatabase();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ connectionId, pid }: { connectionId: string; pid: number }) => {
-      const response = await queryClient.terminateSession({ connectionId, pid });
+      const response = await queryClient.terminateSession({ connectionId, pid, database });
       if (response.error) throw new Error(response.error);
       return response.success;
     },
     onSuccess: (_, { connectionId }) => {
-      qc.invalidateQueries({ queryKey: queryKeys.processes(connectionId) });
+      qc.invalidateQueries({ queryKey: queryKeys.processes(connectionId, database) });
     },
   });
 }
 
 export function useAuditLogEntries(connectionId: string, enabled = true) {
+  const database = useSelectedDatabase();
   return useQuery({
-    queryKey: queryKeys.auditLog(connectionId),
+    queryKey: queryKeys.auditLog(connectionId, database),
     queryFn: async () => {
-      const response = await queryClient.getAuditLogEntries({ connectionId, limit: AUDIT_LOG_FETCH_LIMIT });
+      const response = await queryClient.getAuditLogEntries({ connectionId, limit: AUDIT_LOG_FETCH_LIMIT, database });
       return response.entries;
     },
     enabled: enabled && !!connectionId,
@@ -357,11 +377,14 @@ export function useSystemAuditLogEntries(enabled = true) {
 
 // Refresh AI schema cache
 export function useRefreshSchemaCache() {
+  const database = useSelectedDatabase();
   return useMutation({
     mutationFn: async ({ connectionId, schemas }: { connectionId: string; schemas?: string[] }) => {
       const response = await aiClient.refreshSchemaCache({
         connectionId,
         schemas: schemas || [],
+        // The AI schema cache is keyed by database, so refresh the one in view.
+        database,
       });
       if (response.error) throw new Error(response.error);
       return response.success;

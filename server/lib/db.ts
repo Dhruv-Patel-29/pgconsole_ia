@@ -12,15 +12,45 @@ export interface ConnectionDetails {
   statementTimeout?: string;
 }
 
+/**
+ * Raised when a caller asks for a database the connection isn't allowed to reach.
+ * Distinguished from "unknown connection" so callers can map it to the right RPC code.
+ */
+export class DatabaseNotAllowedError extends Error {
+  constructor(connectionId: string, database: string) {
+    super(`Database "${database}" is not available on connection "${connectionId}"`);
+    this.name = "DatabaseNotAllowedError";
+  }
+}
+
 // Map a configured connection to the details needed to open a client.
 // Returns null when the connection ID is unknown; callers raise their own error.
-export function buildConnectionDetails(connectionId: string): ConnectionDetails | null {
+//
+// `database` overrides the connection's configured (maintenance) database, which is how
+// one connection browses many databases on the same server, pgAdmin-style. The override
+// is only honoured when the connection opted into `all_databases`; otherwise asking for
+// anything other than the configured database is rejected rather than silently ignored,
+// so an IAM grant scoped to one database can't be widened by a crafted request.
+export function buildConnectionDetails(
+  connectionId: string,
+  database?: string
+): ConnectionDetails | null {
   const conn = getConnectionById(connectionId);
   if (!conn) return null;
+
+  let resolvedDatabase = conn.database;
+  const requested = database?.trim();
+  if (requested && requested !== conn.database) {
+    if (!conn.all_databases) {
+      throw new DatabaseNotAllowedError(connectionId, requested);
+    }
+    resolvedDatabase = requested;
+  }
+
   return {
     host: conn.host,
     port: conn.port,
-    database: conn.database,
+    database: resolvedDatabase,
     username: conn.username,
     password: conn.password,
     sslMode: conn.ssl_mode || "prefer",

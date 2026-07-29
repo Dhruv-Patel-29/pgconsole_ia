@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { parseObjectFromUrl, setObjectParams } from '@/lib/url'
 import { useSchemas, useTables } from './useQuery'
+import { useSelectedDatabase } from '@/lib/database-context'
 import type { ObjectType } from '@/components/sql-editor/ObjectTree'
 
 export interface SelectedObject {
@@ -35,6 +36,11 @@ interface UseEditorNavigationResult {
 export function useEditorNavigation(connectionId: string, enabled = true): UseEditorNavigationResult {
   const [searchParams, setSearchParams] = useSearchParams()
   const prevConnectionIdRef = useRef<string | null>(null)
+  // Tracked alongside the connection because a different database has entirely unrelated
+  // schemas, so a stale schema/object param has to be cleared either way. DatabaseSwitcher
+  // already clears them when switching, but a hand-edited URL wouldn't.
+  const database = useSelectedDatabase()
+  const prevDatabaseRef = useRef<string | null>(null)
 
   // Parse current URL state
   const schemaFromUrl = searchParams.get('schema')
@@ -114,17 +120,25 @@ export function useEditorNavigation(connectionId: string, enabled = true): UseEd
     // Don't update URL while still loading
     if (!connectionId || isSchemasLoading) return
 
-    // Detect connection change - clear URL params
+    // Detect connection or database change - clear URL params
     const connectionChanged = prevConnectionIdRef.current !== null &&
                               prevConnectionIdRef.current !== connectionId
+    const databaseChanged = prevDatabaseRef.current !== null &&
+                            prevDatabaseRef.current !== database
     prevConnectionIdRef.current = connectionId
+    prevDatabaseRef.current = database
 
-    if (connectionChanged) {
-      // Connection changed - navigate to clean URL, let next render set defaults
+    if (connectionChanged || databaseChanged) {
+      // Navigate to a clean URL and let the next render set defaults. The database is
+      // preserved on a database change (it's the thing being selected) but dropped on a
+      // connection change, since it may not exist on the new server.
       setSearchParams(
         (prev) => {
           const newParams = new URLSearchParams()
           newParams.set('connectionId', prev.get('connectionId') || connectionId)
+          if (!connectionChanged && database) {
+            newParams.set('database', database)
+          }
           return newParams
         },
         { replace: true }
@@ -164,6 +178,7 @@ export function useEditorNavigation(connectionId: string, enabled = true): UseEd
     enabled,
     connectionId,
     isSchemasLoading,
+    database,
     isTablesLoading,
     effectiveSchema,
     schemaFromUrl,

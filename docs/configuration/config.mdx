@@ -397,12 +397,19 @@ Configure providers for the [AI Assistant](/features/ai-assistant). Repeat for m
 |-------|-------------|----------|
 | `id` | Unique identifier | Yes |
 | `name` | Display name (defaults to `id`) | |
-| `vendor` | AI vendor: `openai`, `anthropic`, `google`, `openai-compatible` | Yes |
+| `vendor` | AI vendor: `openai`, `anthropic`, `google`, `openai-compatible`, `ollama-cloud` | Yes |
 | `model` | Model identifier | Yes |
 | `api_key` | API key for the vendor | Yes (optional for `openai-compatible`) |
 | `base_url` | Base URL of an OpenAI-compatible API (e.g. `https://api.groq.com/openai/v1`) | Required for `openai-compatible` |
 
 Use `vendor = "openai-compatible"` with `base_url` for any provider that implements the OpenAI API (Groq, OpenRouter, Together, Ollama, vLLM, LiteLLM, and most self-hosted gateways). `api_key` may be omitted for local providers that run without authentication (e.g. Ollama, self-hosted vLLM).
+
+### Ollama
+
+Ollama works two ways, depending on where the model runs:
+
+- **Ollama Cloud** — `vendor = "ollama-cloud"` runs [Ollama's hosted models](https://ollama.com). `base_url` defaults to `https://ollama.com/v1`, so a provider needs only `model` and `api_key`. Create a key at [ollama.com/settings/keys](https://ollama.com/settings/keys).
+- **Local Ollama** — `vendor = "openai-compatible"` with `base_url = "http://localhost:11434/v1"`. No `api_key`, since a local Ollama runs unauthenticated.
 
 ```toml pgconsole.toml
 [[ai.providers]]
@@ -411,6 +418,20 @@ name = "GPT-4o"
 vendor = "openai"
 model = "gpt-4o"
 api_key = "sk-..."
+
+[[ai.providers]]
+id = "ollama-cloud"
+name = "Ollama GPT-OSS 120B"
+vendor = "ollama-cloud"
+model = "gpt-oss:120b"
+api_key = "..."
+
+[[ai.providers]]
+id = "ollama-local"
+name = "Ollama (local)"
+vendor = "openai-compatible"
+model = "llama3.3"
+base_url = "http://localhost:11434/v1"
 
 [[ai.providers]]
 id = "groq"

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { ConnectionSwitcher } from './ConnectionSwitcher';
+import { DatabaseSwitcher } from './DatabaseSwitcher';
 import { Menu, MenuTrigger, MenuPopup, MenuItem } from './ui/menu';
 import { useSession, signOut } from '@/lib/auth-client';
 import { useOwner } from '@/hooks/useOwner';
@@ -49,7 +50,11 @@ export default function Header({ selectedConnectionId }: HeaderProps) {
       className={`h-12 flex items-center px-3 justify-between ${tint ? '' : 'bg-gray-100 border-b border-gray-300'}`}
       style={tintStyle}
     >
-      <ConnectionSwitcher selectedConnectionId={selectedConnectionId} />
+      {/* Grouped so the header's justify-between keeps two children, not three. */}
+      <div className="flex min-w-0 items-center gap-1">
+        <ConnectionSwitcher selectedConnectionId={selectedConnectionId} />
+        <DatabaseSwitcher selectedConnectionId={selectedConnectionId} />
+      </div>
 
       <div className="flex items-center gap-1.5">
         {branding?.logo ? (

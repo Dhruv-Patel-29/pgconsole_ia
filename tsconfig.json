@@ -1,5 +1,8 @@
 {
   "files": [],
+  // tsconfig.server.json is deliberately NOT referenced here: server/ has never been
+  // typechecked, and it currently has pre-existing errors that would fail `pnpm build`.
+  // Check it on demand with `pnpm typecheck:server` (see package.json).
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }

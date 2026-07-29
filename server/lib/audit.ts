@@ -48,7 +48,21 @@ interface DataExportEvent extends BaseEvent {
   source: 'web'
 }
 
-export type AuditEvent = AuthLoginEvent | AuthLogoutEvent | SQLExecuteEvent | DataExportEvent
+/**
+ * A change to instance configuration made through the UI (connections, AI providers).
+ * Instance-wide rather than connection-scoped, so it belongs in the System tab alongside
+ * auth events. Secret values are never recorded — only which object changed.
+ */
+interface ConfigChangeEvent extends BaseEvent {
+  action: 'config.change'
+  /** What changed, e.g. "ai_provider.create" or "connection.delete" */
+  change: string
+  /** Id of the affected object */
+  object_id: string
+  source: 'web'
+}
+
+export type AuditEvent = AuthLoginEvent | AuthLogoutEvent | SQLExecuteEvent | DataExportEvent | ConfigChangeEvent
 
 const auditEvents: AuditEvent[] = []
 
@@ -170,6 +184,22 @@ export function auditExport(
   })
 }
 
+/**
+ * Record a UI-driven configuration change. `change` names the operation
+ * ("ai_provider.create"), `objectId` the affected entry. Never pass a secret.
+ */
+export function auditConfigChange(actor: string | undefined, change: string, objectId: string): void {
+  emit({
+    type: 'audit',
+    ts: now(),
+    action: 'config.change',
+    actor: actor ?? 'guest',
+    change,
+    object_id: objectId,
+    source: 'web',
+  })
+}
+
 export function listAuditEvents(connectionId: string, limit: number): AuditEvent[] {
   pruneRetainedEvents('all')
   const entries: AuditEvent[] = []
@@ -191,7 +221,7 @@ export function listSystemAuditEvents(limit: number): AuditEvent[] {
   const entries: AuditEvent[] = []
   for (let i = auditEvents.length - 1; i >= 0 && entries.length < limit; i--) {
     const event = auditEvents[i]
-    if (event.action === 'auth.login' || event.action === 'auth.logout') {
+    if (event.action === 'auth.login' || event.action === 'auth.logout' || event.action === 'config.change') {
       entries.push(event)
     }
   }

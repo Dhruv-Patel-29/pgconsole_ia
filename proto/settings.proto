@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package settings.v1;
+
+// Instance-level settings that aren't scoped to a single connection. Every RPC here is
+// gated on the instance owner (or any principal when auth is disabled, i.e. desktop).
+service SettingsService {
+  rpc GetStoreStatus(GetStoreStatusRequest) returns (GetStoreStatusResponse);
+  rpc SetMasterPassword(SetMasterPasswordRequest) returns (SetMasterPasswordResponse);
+  rpc UnlockStore(UnlockStoreRequest) returns (UnlockStoreResponse);
+  rpc LockStore(LockStoreRequest) returns (LockStoreResponse);
+}
+
+message GetStoreStatusRequest {}
+
+message GetStoreStatusResponse {
+  // A master password (or PGCONSOLE_SECRET_KEY) has been established for this store.
+  bool has_master_password = 1;
+  // Secrets can currently be read and written.
+  bool unlocked = 2;
+  // The key came from PGCONSOLE_SECRET_KEY, so there is no password to prompt for.
+  bool key_from_env = 3;
+  // Whether the store opened at all. False means UI-managed config is unavailable.
+  bool available = 4;
+}
+
+message SetMasterPasswordRequest {
+  string password = 1;
+}
+
+message SetMasterPasswordResponse {}
+
+message UnlockStoreRequest {
+  string password = 1;
+}
+
+message UnlockStoreResponse {}
+
+message LockStoreRequest {}
+
+message LockStoreResponse {}

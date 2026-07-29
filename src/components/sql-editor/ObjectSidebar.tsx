@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RefreshCw, ScrollText } from 'lucide-react'
+import { RefreshCw, ScrollText, Settings as SettingsIcon } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { SearchInput } from '../ui/search-input'
 import { SchemaSelector } from './SchemaSelector'
@@ -167,23 +167,42 @@ export function ObjectSidebar({
         />
       )}
       <div className="flex items-center justify-between border-t border-gray-200 px-2 py-1.5">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Audit Log"
-                onClick={() => navigate(`/audit-log?connectionId=${connectionId}`)}
-              >
-                <ScrollText className="h-4 w-4" />
-              </Button>
-            }
-          />
-          <TooltipContent side="top">
-            Audit Log
-          </TooltipContent>
-        </Tooltip>
+        <div className="flex items-center">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Audit Log"
+                  onClick={() => navigate(`/audit-log?connectionId=${connectionId}`)}
+                >
+                  <ScrollText className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <TooltipContent side="top">
+              Audit Log
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Settings"
+                  onClick={() => navigate('/settings')}
+                >
+                  <SettingsIcon className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <TooltipContent side="top">
+              Settings
+            </TooltipContent>
+          </Tooltip>
+        </div>
         <Tooltip>
           <TooltipTrigger
             render={

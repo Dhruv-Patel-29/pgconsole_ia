@@ -30,6 +30,8 @@ interface SelectedTable {
 
 interface SchemaStoreState {
   connectionId: string | null
+  /** Selected database, or null for the connection's configured default. */
+  database: string | null
   selectedSchema: string | null
   selectedTable: SelectedTable | null
   schemas: Map<string, SchemaData>
@@ -39,6 +41,7 @@ interface SchemaStoreState {
 
 const state: SchemaStoreState = {
   connectionId: null,
+  database: null,
   selectedSchema: null,
   selectedTable: null,
   schemas: new Map(),
@@ -48,11 +51,19 @@ const state: SchemaStoreState = {
 
 export const schemaStore = {
   // Setters
-  setConnection(connectionId: string) {
-    if (state.connectionId !== connectionId) {
+  //
+  // Scoped to (connection, database) rather than connection alone: one connection can
+  // browse many databases, and their schemas are unrelated. Keying on connection only
+  // would leave the previous database's tables in the autocomplete and object tree.
+  setConnection(connectionId: string, database?: string) {
+    const nextDatabase = database ?? null
+    if (state.connectionId !== connectionId || state.database !== nextDatabase) {
       state.connectionId = connectionId
+      state.database = nextDatabase
       state.schemas.clear()
       state.columns.clear()
+      state.selectedSchema = null
+      state.selectedTable = null
       state.isLoaded = false
     }
   },

@@ -4,11 +4,16 @@ import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 
-export type Vendor = 'openai' | 'anthropic' | 'google' | 'openai-compatible'
+export type Vendor = 'openai' | 'anthropic' | 'google' | 'openai-compatible' | 'ollama-cloud'
 
 const MAX_HISTORY_MESSAGES = 10  // Cap conversation tail to bound session blob size
 const MAX_SESSION_ID_BYTES = 256 * 1024  // Skip decoding session blobs larger than this — fall back to a fresh history
 const MAX_OUTPUT_TOKENS = 4096
+
+// Ollama Cloud speaks the OpenAI wire protocol, so it rides the openai-compatible
+// path. It exists as its own vendor only so the UI can offer it as a preset (fixed
+// base_url, required API key) instead of making users type an endpoint.
+export const OLLAMA_CLOUD_BASE_URL = 'https://ollama.com/v1'
 
 export interface GenerateResult {
   sql: string
@@ -37,9 +42,63 @@ function buildModel(
       }
       // Use base_url as the provider name so error messages distinguish providers
       return createOpenAICompatible({ name: baseUrl, baseURL: baseUrl, apiKey })(model)
+    case 'ollama-cloud':
+      // Same wire protocol as openai-compatible; base_url defaults to Ollama Cloud
+      // so a provider entry only needs a model and an API key.
+      return createOpenAICompatible({
+        name: 'ollama-cloud',
+        baseURL: baseUrl || OLLAMA_CLOUD_BASE_URL,
+        apiKey,
+      })(model)
     default:
       throw new Error(`Unknown vendor: ${vendor}`)
   }
+}
+
+// Resolve the effective OpenAI-wire base URL for a vendor, or null if the vendor
+// doesn't expose one (the first-party SDKs manage their own endpoints).
+export function resolveBaseUrl(vendor: Vendor, baseUrl?: string): string | null {
+  if (vendor === 'ollama-cloud') return baseUrl || OLLAMA_CLOUD_BASE_URL
+  if (vendor === 'openai-compatible') return baseUrl || null
+  return null
+}
+
+const MODEL_LIST_TIMEOUT_MS = 10_000
+
+// List models an OpenAI-wire provider advertises via GET /models, so the settings UI
+// can offer a dropdown instead of a free-text model field. Only meaningful for
+// openai-compatible and ollama-cloud; returns [] for the first-party SDK vendors,
+// whose model catalogues aren't discoverable this way.
+export async function listVendorModels(
+  vendor: Vendor,
+  apiKey: string | undefined,
+  baseUrl?: string
+): Promise<string[]> {
+  const resolved = resolveBaseUrl(vendor, baseUrl)
+  if (!resolved) return []
+
+  const signal = AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS)
+  const res = await fetch(`${resolved.replace(/\/+$/, '')}/models`, {
+    headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
+    signal,
+  })
+  if (!res.ok) {
+    throw new Error(`Model list request failed: ${res.status} ${res.statusText}`)
+  }
+
+  // OpenAI shape: { data: [{ id }] }. Some providers return a bare array.
+  const body = (await res.json()) as unknown
+  const rows = Array.isArray(body)
+    ? body
+    : Array.isArray((body as { data?: unknown }).data)
+      ? (body as { data: unknown[] }).data
+      : []
+
+  const ids = rows
+    .map((r) => (typeof r === 'string' ? r : (r as { id?: unknown })?.id))
+    .filter((id): id is string => typeof id === 'string' && id.length > 0)
+
+  return [...new Set(ids)].sort()
 }
 
 // Only system/user/assistant string messages are produced here; drop anything else
