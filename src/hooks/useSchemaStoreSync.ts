@@ -51,6 +51,11 @@ export function useSchemaStoreSync(connectionId: string, selectedSchema: string 
       if (event.type === 'updated' && event.query.state.status === 'success') {
         const queryKey = event.query.queryKey as string[]
 
+        // The database is the last element of every one of these keys. Without this check a
+        // request issued before a database switch would land in the store afterwards and
+        // populate the tree with the previous database's objects.
+        if (queryKey[queryKey.length - 1] !== database) return
+
         // Check if this is a tables query
         if (queryKey[1] === 'tables' && queryKey[2] === connectionId) {
           const schema = queryKey[3] as string

@@ -19,6 +19,9 @@ const { app, BrowserWindow, Menu, shell, dialog } = requireCjs('electron') as ty
  * server side of that HTTP boundary.
  */
 
+/** How long to wait for a graceful server shutdown before quitting anyway. */
+const SHUTDOWN_TIMEOUT_MS = 3_000
+
 let mainWindow: BrowserWindowInstance | null = null
 let runningServer: RunningServer | null = null
 
@@ -169,7 +172,14 @@ if (!app.requestSingleInstanceLock()) {
     runningServer = null
     event.preventDefault()
     try {
-      await server.close()
+      // preventDefault() means nothing else will quit the app, so a close() that never
+      // settles would leave the process alive with no window — invisible except in Task
+      // Manager, and it would hold the single-instance lock against the next launch.
+      // Cleanup is best-effort; exiting is not.
+      await Promise.race([
+        server.close(),
+        new Promise((resolve) => setTimeout(resolve, SHUTDOWN_TIMEOUT_MS)),
+      ])
     } finally {
       app.quit()
     }

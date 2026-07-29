@@ -47,7 +47,7 @@ function toConnectionResponse(conn: ConnectionConfig, userPermissions: Set<Permi
     port: conn.port,
     database: conn.database,
     username: conn.username,
-    hasPassword: !!conn.password,
+    hasPassword: conn.has_password ?? !!conn.password,
     sslMode: conn.ssl_mode || 'prefer',
     labels: hydratedLabels,
     version: info.version || '',

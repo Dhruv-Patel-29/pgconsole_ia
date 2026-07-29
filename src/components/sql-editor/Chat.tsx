@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group'
 import { Checkbox } from '../ui/checkbox'
 import { Tooltip, TooltipTrigger, TooltipPopup } from '../ui/tooltip'
 import { aiClient, queryClient } from '@/lib/connect-client'
+import { useSelectedDatabase } from '@/lib/database-context'
 import { tokenize, parseSql } from '@/lib/sql'
 import { SYNTAX_CORRECTION } from '@/lib/ai/prompts'
 import ReactMarkdown from 'react-markdown'
@@ -105,6 +106,9 @@ function abbreviateModelName(name: string, model: string): string {
 }
 
 export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, initialPrompt, onInitialPromptProcessed }: ChatProps) {
+  // Which database on the connection the user is looking at. Every AI call has to carry it,
+  // or the server builds schema context from the connection's default database instead.
+  const database = useSelectedDatabase()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -133,8 +137,8 @@ export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, init
   })
 
   const { data: schemasData } = useQuery({
-    queryKey: ['schemas', connectionId],
-    queryFn: () => queryClient.getSchemas({ connectionId }),
+    queryKey: ['schemas', connectionId, database],
+    queryFn: () => queryClient.getSchemas({ connectionId, database }),
   })
 
   const providers = providersData?.providers ?? []
@@ -164,13 +168,14 @@ export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, init
     [customSchemas]
   )
 
-  // Clear conversation when context changes (connection, provider, or schema selection)
-  // to prevent stale references in the AI session
+  // Clear conversation when context changes (connection, database, provider, or schema
+  // selection) to prevent stale references in the AI session. The server keys its session
+  // by id and carries the schema context forward, so a database switch has to start over.
   useEffect(() => {
     setMessages([])
     setSessionId(null)
     setConversationMode('generate')
-  }, [connectionId, selectedProvider, schemaMode, customSchemasKey])
+  }, [connectionId, database, selectedProvider, schemaMode, customSchemasKey])
 
   // Handle initial prompt (e.g., from "Explain with AI")
   useEffect(() => {
@@ -213,6 +218,7 @@ export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, init
             providerId: selectedProvider,
             sql: initialPrompt.sql,
             schemas,
+            database,
             sessionId: '',
           })
 
@@ -255,7 +261,7 @@ export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, init
     return () => {
       cancelled = true
     }
-  }, [initialPrompt, selectedProvider, connectionId, schemaMode, selectedSchema, availableSchemas, customSchemas, onInitialPromptProcessed])
+  }, [initialPrompt, selectedProvider, connectionId, database, schemaMode, selectedSchema, availableSchemas, customSchemas, onInitialPromptProcessed])
 
   // Compute schemas to send to AI
   const schemasToSend = (() => {
@@ -310,6 +316,7 @@ export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, init
           providerId: selectedProvider,
           sql: userMessage.content,
           schemas: schemasToSend,
+          database,
           sessionId: sessionId || '',
         })
 
@@ -339,6 +346,7 @@ export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, init
             providerId: selectedProvider,
             prompt,
             schemas: schemasToSend,
+            database,
             sessionId: currentSessionId,
           })
 

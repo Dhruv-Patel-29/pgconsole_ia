@@ -16,6 +16,7 @@ import { Banner } from './components/Banner';
 import { useSetting } from './hooks/useSetting';
 import { DemoBanner } from './components/DemoBanner';
 import { SelectedDatabaseProvider } from './components/SelectedDatabaseProvider';
+import { UnlockStorePrompt } from './components/UnlockStorePrompt';
 
 function AppLayout() {
   const { user, isPending: sessionPending, serverError, authEnabled } = useSession();
@@ -155,6 +156,7 @@ function AppLayout() {
           </Routes>
         </div>
       </div>
+      <UnlockStorePrompt />
     </ToastProvider>
   );
 }

@@ -205,9 +205,11 @@ export async function startServer(options: StartOptions = {}): Promise<RunningSe
     console.log(`MCP server on ${mcpBaseUrl}${MCP_PATH} (${mcpStatus})`)
   }
 
-  const server = host
-    ? app.listen(Number(port), host, onListening)
-    : app.listen(Number(port), onListening)
+  // The banner is printed after the await rather than passed as the listen callback. A
+  // listen callback is just the first 'listening' listener, and emit() runs listeners
+  // synchronously in order — so anything thrown while logging would stop the resolver
+  // below from ever running and startServer would hang instead of failing.
+  const server = host ? app.listen(Number(port), host) : app.listen(Number(port))
 
   await new Promise<void>((resolve, reject) => {
     server.once('listening', () => resolve())
@@ -224,6 +226,8 @@ export async function startServer(options: StartOptions = {}): Promise<RunningSe
     })
   })
 
+  onListening()
+
   const actualPort = (server.address() as { port: number } | null)?.port ?? Number(port)
 
   const close = async () => {
@@ -231,7 +235,13 @@ export async function startServer(options: StartOptions = {}): Promise<RunningSe
       if (isDemoMode()) await stopDemoDatabase()
       closeStore()
     } catch { /* best-effort cleanup */ }
-    await new Promise<void>((resolve) => server.close(() => resolve()))
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve())
+      // server.close() only stops *new* connections; its callback waits for every open one
+      // to end. The renderer holds keep-alive sockets open for as long as it lives, so
+      // without this the promise never settles and shutdown hangs indefinitely.
+      server.closeAllConnections()
+    })
   }
 
   return {

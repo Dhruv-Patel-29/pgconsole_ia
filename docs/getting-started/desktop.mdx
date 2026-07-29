@@ -64,6 +64,9 @@ That SQLite database holds connections, server groups, and AI providers. Passwor
 keys inside it are encrypted with AES-256-GCM using a key derived from your
 [master password](#master-password). Override the location with `PGCONSOLE_DATA_DIR`.
 
+This is the same location the CLI uses, so a desktop install and `pgconsole --config` on the
+same machine share one set of UI-managed connections.
+
 ## Master password
 
 Before pgconsole will save a database password or an AI provider API key, you set a master
@@ -75,8 +78,13 @@ There is no recovery if you lose the master password. Saved credentials would ha
 re-entered.
 </Warning>
 
-On later launches the store starts locked. Connections without a saved password remain
-usable; anything needing a stored secret prompts you to unlock first.
+On later launches the store starts locked and pgconsole asks for the master password once,
+at startup. This is expected rather than lost data: the encryption key is derived from the
+password and never written to disk, so there is nothing for a restart to remember it with.
+
+Dismiss the prompt with **Not now** to keep working — connections without a saved password
+stay usable, and you can unlock later under **Settings → Security**. Until you unlock,
+anything that needs a stored secret will fail to connect.
 
 For headless or automated use, set `PGCONSOLE_SECRET_KEY` to a 32-byte key (64 hex
 characters, or base64) instead. When it is set, no master password is needed.

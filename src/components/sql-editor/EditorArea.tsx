@@ -19,6 +19,7 @@ import { useConnectionPermissions } from '../../hooks/usePermissions'
 import { getEditorInfo, formatSql, formatSqlOneLine, parseSql, isDDLStatement } from '@/lib/sql'
 import { aiClient } from '@/lib/connect-client'
 import { schemaStore } from '@/lib/schema-store'
+import { useSelectedDatabase } from '@/lib/database-context'
 
 interface EditorAreaProps {
   editorTabs: ReturnType<typeof useEditorTabs>
@@ -34,6 +35,8 @@ interface EditorAreaProps {
 }
 
 export function EditorArea({ editorTabs, connectionId, selectedSchema, rightPanelOpen, onRightPanelToggle, onEditorReady, selectedObject, onGenerateSQL, onExplainWithAI, onViewSchema }: EditorAreaProps) {
+  // AI rewrite/fix need the database the user is on, not the connection default.
+  const database = useSelectedDatabase()
   const {
     tabs,
     activeTab,
@@ -366,6 +369,7 @@ export function EditorArea({ editorTabs, connectionId, selectedSchema, rightPane
         providerId: selectedProvider,
         sql,
         schemas,
+        database,
       })
 
       if (response.error || !response.sql) {
@@ -384,7 +388,7 @@ export function EditorArea({ editorTabs, connectionId, selectedSchema, rightPane
       setIsRewriting(false)
       setRewritingTooltipPos(null)
     }
-  }, [activeTab, connectionId, isRewriting])
+  }, [activeTab, connectionId, database, isRewriting])
 
   const handleFixWithAI = useCallback(async (errorMessage: string, errorFrom: number) => {
     if (!activeTab || activeTab.tab.type !== 'query' || isRewriting) return
@@ -439,6 +443,7 @@ export function EditorArea({ editorTabs, connectionId, selectedSchema, rightPane
         sql,
         errorMessage,
         schemas,
+        database,
       })
 
       if (response.error || !response.sql) {
@@ -457,7 +462,7 @@ export function EditorArea({ editorTabs, connectionId, selectedSchema, rightPane
       setIsRewriting(false)
       setRewritingTooltipPos(null)
     }
-  }, [activeTab, connectionId, isRewriting])
+  }, [activeTab, connectionId, database, isRewriting])
 
 
   if (!activeTab) {

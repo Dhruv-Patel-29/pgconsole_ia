@@ -29,6 +29,18 @@ const { app } = requireCjs('electron') as typeof import('electron')
 // Suppress the CLI's self-start; Electron calls startServer() explicitly.
 process.env.PGCONSOLE_EMBEDDED = '1'
 
+/**
+ * Pin the app name before asking for any path, because userData is derived from it.
+ *
+ * Left to itself Electron picks the name from the nearest package.json, which gives two
+ * wrong answers: running the entry file directly finds no package.json and falls back to
+ * "Electron" (so the store would land in ~/.config/Electron, shared with every other
+ * unpackaged Electron app on the machine), and the packaged app finds our scoped npm name
+ * and yields %APPDATA%\@pgplex\pgconsole. Setting it explicitly makes both cases agree with
+ * electron-builder's productName and with the documented location.
+ */
+app.setName('pgconsole')
+
 // Keep pgconsole.db in Electron's per-user data directory (on Windows,
 // %APPDATA%\pgconsole) instead of the CLI's ~/.config location.
 process.env.PGCONSOLE_DATA_DIR ??= app.getPath('userData')

@@ -46,6 +46,13 @@ export interface ConnectionConfig {
    * Opt-in, because it widens what an IAM grant on this connection reaches.
    */
   all_databases?: boolean
+  /**
+   * Whether a password is stored, independent of whether it is currently readable. A locked
+   * store holds the ciphertext but hands back no plaintext, so `!!password` would say "no
+   * password" on every restart. Only set for store-backed connections; TOML passwords are
+   * always plaintext, so `!!password` is accurate there.
+   */
+  has_password?: boolean
 }
 
 export interface UserConfig {
@@ -842,6 +849,10 @@ function storedConnectionToConfig(c: StoredConnection): ConnectionConfig {
     source: 'store',
     group_id: c.group_id,
     all_databases: c.all_databases,
+    // Whether a password is on file, which is not the same as whether it can be read right
+    // now: a locked store still holds the ciphertext. Without this the UI would report
+    // "no password saved" after every restart.
+    has_password: c.hasPassword,
   }
 }
 

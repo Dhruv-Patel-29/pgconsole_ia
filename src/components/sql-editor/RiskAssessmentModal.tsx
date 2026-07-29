@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { Alert } from '@/components/ui/alert'
 import { aiClient } from '@/lib/connect-client'
+import { useSelectedDatabase } from '@/lib/database-context'
 import ReactMarkdown from 'react-markdown'
 import { renderMermaid } from 'beautiful-mermaid'
 
@@ -41,6 +42,7 @@ export function RiskAssessmentModal({
   providerId,
   sqlStatements,
 }: RiskAssessmentModalProps) {
+  const database = useSelectedDatabase()
   const [loading, setLoading] = useState(true)
   const [assessment, setAssessment] = useState<{
     overallRisk: string
@@ -67,6 +69,7 @@ export function RiskAssessmentModal({
           providerId,
           sqlStatements,
           schemas: [], // Use all cached schemas
+          database,
         })
 
         if (response.error) {
@@ -86,7 +89,7 @@ export function RiskAssessmentModal({
     }
 
     assessRisk()
-  }, [open, connectionId, providerId, sqlStatements])
+  }, [open, connectionId, providerId, sqlStatements, database])
 
   useEffect(() => {
     if (!assessment?.dependencyGraph) {

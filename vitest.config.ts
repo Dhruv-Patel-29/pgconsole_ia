@@ -14,4 +14,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Compile-time constants that scripts/build-server.mjs and vite inject. Without them any
+  // test that imports server/index.ts dies on an undefined identifier when it logs.
+  define: {
+    __APP_VERSION__: JSON.stringify('test'),
+    __DEV__: 'false',
+    __GIT_COMMIT__: JSON.stringify('test'),
+  },
 })
