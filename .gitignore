@@ -33,3 +33,10 @@ dist-ssr
 src/gen/
 plans/
 .worktrees/
+
+# Electron desktop build output
+electron/dist
+release
+
+# Vendored reference checkout of the upstream OSS repo (its own git repo, not our source)
+pgconsole_oss_original/

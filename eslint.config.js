@@ -6,7 +6,10 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Build output ('dist' alone doesn't match the nested electron/dist) and
+  // pgconsole_oss_original/, a vendored reference checkout of the upstream OSS repo that
+  // isn't part of this project's sources.
+  globalIgnores(['dist', '**/dist/**', 'release', 'pgconsole_oss_original']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
