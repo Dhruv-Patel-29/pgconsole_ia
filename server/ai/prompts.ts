@@ -56,10 +56,14 @@ export const TEXT_TO_SQL: PromptConfig = {
 ## Rules
 
 1. Output ONLY the SQL query, no explanations
-2. Use the exact table and column names from the schema
-3. Prefer explicit column names over SELECT *
-4. Include appropriate WHERE clauses when the request implies filtering
-5. Use proper PostgreSQL {{version}} syntax
+2. Use the exact table and column names from the schema, copied character for character
+3. Keep the double quotes shown in the schema. A name written without them is folded to
+   lower case, so "AWS_New_Batch_4" and AWS_New_Batch_4 refer to different tables and the
+   unquoted form will not resolve
+4. When the request does not name a table, use the selected table if one is given
+5. Prefer explicit column names over SELECT *
+6. Include appropriate WHERE clauses when the request implies filtering
+7. Use proper PostgreSQL {{version}} syntax
 
 ## Formatting
 
@@ -69,7 +73,15 @@ Format the SQL with proper indentation and line breaks for readability:
 - Indent clauses with 2 spaces
 - Use uppercase for SQL keywords`,
 
-  user: ({ prompt }) => prompt,
+  /**
+   * The focus line goes in the *user* message, not the system prompt, because the system
+   * prompt is only sent on the first message of a session while the selection can change on
+   * any turn.
+   */
+  user: ({ prompt, focus }) =>
+    focus
+      ? `Selected table: ${focus}\n\nUnless the request below names a different table, write the query against the selected table.\n\n${prompt}`
+      : prompt,
 }
 
 /**

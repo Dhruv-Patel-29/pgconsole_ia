@@ -59,7 +59,7 @@ export function RightPanel({ open, width, activeTab, onActiveTabChange, connecti
         {activeTab === 'context' ? (
           <ContextPanel connectionId={connectionId} selectedObject={selectedObject} onViewSchema={onViewSchema} />
         ) : (
-          <Chat connectionId={connectionId} onInsertSQL={onInsertSQL} onRunSQL={onRunSQL} selectedSchema={selectedSchema} initialPrompt={initialPrompt} onInitialPromptProcessed={onInitialPromptProcessed} />
+          <Chat connectionId={connectionId} onInsertSQL={onInsertSQL} onRunSQL={onRunSQL} selectedSchema={selectedSchema} selectedObject={selectedObject} initialPrompt={initialPrompt} onInitialPromptProcessed={onInitialPromptProcessed} />
         )}
       </div>
     </div>

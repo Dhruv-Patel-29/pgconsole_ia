@@ -179,4 +179,48 @@ describe('schema cache database keying', () => {
     expect(await getSchemaCache('conn', 'db')).toBeNull()
     expect(await getSchemaCache('conn_extra', 'db')).not.toBeNull()
   })
+
+  it('does not serve a context built for one schema when another is requested', async () => {
+    // The context text only describes the schemas it was built for. Handing back the wrong
+    // one means the model is asked about tables it was never shown.
+    await refreshSchemaCache('conn', DETAILS('db'), ['public'], '16')
+    expect(await getSchemaCache('conn', 'db', ['public'])).not.toBeNull()
+    expect(await getSchemaCache('conn', 'db', ['reporting'])).toBeNull()
+    expect(await getSchemaCache('conn', 'db', ['public', 'reporting'])).toBeNull()
+    // "every schema" is its own request, not a superset that any named set satisfies.
+    expect(await getSchemaCache('conn', 'db', [])).toBeNull()
+  })
+
+  it('treats schema order and duplicates as the same request', async () => {
+    await refreshSchemaCache('conn', DETAILS('db'), ['public', 'app'], '16')
+    expect(await getSchemaCache('conn', 'db', ['app', 'public'])).not.toBeNull()
+    expect(await getSchemaCache('conn', 'db', ['public', 'app', 'public'])).not.toBeNull()
+  })
+
+  it('expires entries so externally created tables eventually appear', async () => {
+    // Nothing clears this cache except a connection edit, so a table created by a batch job
+    // would otherwise stay invisible to the AI for the life of the process while the object
+    // tree, which queries live, shows it.
+    await seed('conn', 'db')
+    expect(await getSchemaCache('conn', 'db')).not.toBeNull()
+
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(Date.now() + 6 * 60 * 1000)
+      expect(await getSchemaCache('conn', 'db')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('keeps entries that are still fresh', async () => {
+    await seed('conn', 'db')
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(Date.now() + 60 * 1000)
+      expect(await getSchemaCache('conn', 'db')).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

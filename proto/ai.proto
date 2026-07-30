@@ -108,6 +108,11 @@ message GenerateSQLRequest {
   string session_id = 5; // Optional, empty on first message
   // Database the schema context should describe. Empty uses the connection default.
   string database = 6;
+  // The object the user currently has selected in the sidebar. The schema context lists
+  // every table, so without this the model has to guess which one a prompt like "fetch the
+  // 10 most recent records" refers to. Empty when nothing is selected.
+  string focus_schema = 7;
+  string focus_table = 8;
 }
 
 message GenerateSQLResponse {

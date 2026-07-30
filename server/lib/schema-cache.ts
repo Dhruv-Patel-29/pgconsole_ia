@@ -1,28 +1,52 @@
 import { createClient, type ConnectionDetails } from './db'
+import { quoteIdent, qualifiedName } from './identifiers'
 
 export interface CachedSchemaInfo {
   formatted: string // Formatted string for AI context
   lastUpdated: number // Timestamp
 }
 
-// Cache: "connectionId\0database" -> schema info.
+// Cache: "connectionId\0database\0schemas" -> schema info.
 //
 // Keyed by database as well as connection because one connection can browse many
 // databases (see buildConnectionDetails). Keying on connection alone would serve the
 // previously-viewed database's schema as AI context after a database switch — wrong
 // answers with no error to signal it.
+//
+// Keyed by the requested schemas too: a context built for one schema does not describe
+// another, and returning it anyway means the model is asked about tables it was never
+// shown.
 const schemaCache = new Map<string, CachedSchemaInfo>()
 
-function cacheKey(connectionId: string, database: string): string {
+/**
+ * How long a built context stays usable.
+ *
+ * The cache is only cleared explicitly, on a connection edit — so without an expiry a table
+ * created by anything other than this app (a batch job, another client, psql) never enters
+ * the AI's context for the life of the process, while the object tree, which queries live,
+ * shows it. The AI then answers about tables it can see and ignores the one the user is
+ * actually looking at. Rebuilding costs three catalog queries, so this trades a little
+ * latency every few minutes for not being silently wrong.
+ */
+const SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000
+
+function cacheKey(connectionId: string, database: string, schemas: string[]): string {
+  // Sorted and deduped so ['public','app'] and ['app','public'] share one entry. An empty
+  // list means "every schema", which is a distinct request from any named set.
+  const normalized = [...new Set(schemas)].sort().join('')
   // NUL can't appear in a Postgres identifier, so it can't be confused for part of either.
-  return `${connectionId}\0${database}`
+  return `${connectionId}\0${database}\0${normalized}`
 }
 
 export async function getSchemaCache(
   connectionId: string,
-  database: string
+  database: string,
+  schemas: string[] = []
 ): Promise<CachedSchemaInfo | null> {
-  return schemaCache.get(cacheKey(connectionId, database)) || null
+  const cached = schemaCache.get(cacheKey(connectionId, database, schemas))
+  if (!cached) return null
+  if (Date.now() - cached.lastUpdated > SCHEMA_CACHE_TTL_MS) return null
+  return cached
 }
 
 export async function refreshSchemaCache(
@@ -39,7 +63,7 @@ export async function refreshSchemaCache(
   }
   // The database comes from the resolved details, so the entry is always filed under the
   // database actually queried rather than whatever the caller believed it was.
-  schemaCache.set(cacheKey(connectionId, connectionDetails.database), cached)
+  schemaCache.set(cacheKey(connectionId, connectionDetails.database, schemas), cached)
   return cached
 }
 
@@ -235,7 +259,9 @@ async function buildSchemaContext(
 
     for (const table of schemaMap.values()) {
       // Table header
-      lines.push(`${table.schema}.${table.table} (${table.objectType})`)
+      // Quoted where required: this text is the model's only source for these names, and an
+      // unquoted mixed-case name gets folded to lower case and fails to resolve.
+      lines.push(`${qualifiedName(table.schema, table.table)} (${table.objectType})`)
       if (table.comment) {
         lines.push(`  -- ${table.comment}`)
       }
@@ -243,7 +269,7 @@ async function buildSchemaContext(
       // Columns
       lines.push('  Columns:')
       for (const col of table.columns) {
-        const parts = [col.name, col.type]
+        const parts = [quoteIdent(col.name), col.type]
         const attrs: string[] = []
         if (!col.nullable) attrs.push('NOT NULL')
         if (col.default) attrs.push(`DEFAULT ${col.default}`)
@@ -262,21 +288,21 @@ async function buildSchemaContext(
       if (pkConstraints.length > 0) {
         lines.push('  Primary Key:')
         for (const pk of pkConstraints) {
-          lines.push(`    ${pk.columns.join(', ')}`)
+          lines.push(`    ${pk.columns.map(quoteIdent).join(', ')}`)
         }
       }
 
       if (fkConstraints.length > 0) {
         lines.push('  Foreign Keys:')
         for (const fk of fkConstraints) {
-          lines.push(`    ${fk.columns.join(', ')} -> ${fk.foreign_table}(${fk.foreign_columns.join(', ')})`)
+          lines.push(`    ${fk.columns.map(quoteIdent).join(', ')} -> ${quoteIdent(fk.foreign_table ?? '')}(${fk.foreign_columns.map(quoteIdent).join(', ')})`)
         }
       }
 
       if (uniqueConstraints.length > 0) {
         lines.push('  Unique Constraints:')
         for (const uc of uniqueConstraints) {
-          lines.push(`    ${uc.columns.join(', ')}`)
+          lines.push(`    ${uc.columns.map(quoteIdent).join(', ')}`)
         }
       }
 
@@ -292,7 +318,7 @@ async function buildSchemaContext(
         lines.push('  Indexes:')
         for (const idx of table.indexes) {
           const unique = idx.is_unique ? 'UNIQUE ' : ''
-          lines.push(`    ${unique}${idx.index_name} (${idx.columns.join(', ')})`)
+          lines.push(`    ${unique}${quoteIdent(idx.index_name)} (${idx.columns.map(quoteIdent).join(', ')})`)
         }
       }
 

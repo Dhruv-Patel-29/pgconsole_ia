@@ -10,6 +10,7 @@ import { Checkbox } from '../ui/checkbox'
 import { Tooltip, TooltipTrigger, TooltipPopup } from '../ui/tooltip'
 import { aiClient, queryClient } from '@/lib/connect-client'
 import { useSelectedDatabase } from '@/lib/database-context'
+import type { SelectedObject } from '@/hooks/useEditorNavigation'
 import { tokenize, parseSql } from '@/lib/sql'
 import { SYNTAX_CORRECTION } from '@/lib/ai/prompts'
 import ReactMarkdown from 'react-markdown'
@@ -29,6 +30,12 @@ interface ChatProps {
   onInsertSQL: (sql: string) => void
   onRunSQL: (sql: string) => void
   selectedSchema?: string // Current selected schema from the UI
+  /**
+   * The object selected in the sidebar. The schema context lists every table in the schema,
+   * so without this a prompt that doesn't name a table ("fetch the 10 most recent records")
+   * leaves the model to guess — and it guesses wrong when tables share a column shape.
+   */
+  selectedObject?: SelectedObject | null
   initialPrompt?: { sql: string; action: 'explain' } | null // Initial prompt to start conversation
   onInitialPromptProcessed?: () => void // Callback when initial prompt is processed
 }
@@ -105,10 +112,16 @@ function abbreviateModelName(name: string, model: string): string {
   return name
 }
 
-export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, initialPrompt, onInitialPromptProcessed }: ChatProps) {
+export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, selectedObject, initialPrompt, onInitialPromptProcessed }: ChatProps) {
   // Which database on the connection the user is looking at. Every AI call has to carry it,
   // or the server builds schema context from the connection's default database instead.
   const database = useSelectedDatabase()
+  // Functions and procedures aren't query targets, so only pass through relations.
+  const focusTable =
+    selectedObject && selectedObject.type !== 'function' && selectedObject.type !== 'procedure'
+      ? selectedObject.name
+      : ''
+  const focusSchema = focusTable ? selectedObject!.schema : ''
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -347,6 +360,11 @@ export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, init
             prompt,
             schemas: schemasToSend,
             database,
+            // Withheld on auto-retries: those messages ask the model to fix a syntax error
+            // in what it just wrote, and re-stating the selected table there invites it to
+            // rewrite the query against that table instead of fixing the one at hand.
+            focusSchema: isAutoRetry ? '' : focusSchema,
+            focusTable: isAutoRetry ? '' : focusTable,
             sessionId: currentSessionId,
           })
 

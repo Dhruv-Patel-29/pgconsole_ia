@@ -12,6 +12,7 @@ import { auditConfigChange } from '../lib/audit'
 import type { AIProviderInput as AIProviderInputMessage } from '../../src/gen/ai_pb'
 import { getConnectionInfo } from '../lib/connection-cache'
 import { getSchemaCache, refreshSchemaCache } from '../lib/schema-cache'
+import { qualifiedName } from '../lib/identifiers'
 import {
   TEXT_TO_SQL,
   EXPLAIN_SQL,
@@ -56,7 +57,7 @@ async function getOrRefreshSchema(
   // Resolve first: the cache is keyed by the database actually in use, so the override
   // has to be applied before the lookup, not after.
   const details = getConnectionDetails(connectionId, database)
-  let cached = await getSchemaCache(connectionId, details.database)
+  let cached = await getSchemaCache(connectionId, details.database, schemas)
 
   if (!cached) {
     const { version } = getConnectionInfo(connectionId)
@@ -388,7 +389,14 @@ export const aiServiceHandlers: ServiceImpl<typeof AIService> = {
         provider.api_key,
         provider.model,
         systemPrompt,
-        TEXT_TO_SQL.user({ prompt: req.prompt }),
+        TEXT_TO_SQL.user({
+          prompt: req.prompt,
+          // Sent every turn, since the user can select a different table mid-conversation
+          // and the system prompt is only sent once per session.
+          focus: req.focusTable
+            ? qualifiedName(req.focusSchema || 'public', req.focusTable)
+            : '',
+        }),
         req.sessionId || '',
         provider.base_url
       )
