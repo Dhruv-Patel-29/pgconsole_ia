@@ -29,8 +29,8 @@
     "build:desktop": "pnpm brand && pnpm gen && tsc -b && vite build && pnpm build:electron",
     "electron:dev": "pnpm build:desktop && electron electron/dist/main.mjs",
     "clean:release": "node scripts/clean-release.mjs",
-    "dist:win": "pnpm clean:release && pnpm build:desktop && electron-builder --win --config electron-builder.yml",
-    "dist:win:dir": "pnpm clean:release && pnpm build:desktop && electron-builder --win --dir --config electron-builder.yml",
+    "dist:win": "pnpm brand:strict && pnpm clean:release && pnpm build:desktop && electron-builder --win --config electron-builder.yml",
+    "dist:win:dir": "pnpm brand:strict && pnpm clean:release && pnpm build:desktop && electron-builder --win --dir --config electron-builder.yml",
     "lint": "eslint .",
     "typecheck:server": "tsc -p tsconfig.server.json",
     "preview": "vite preview",
@@ -41,7 +41,8 @@
     "test:autocomplete": "vitest tests/sql-autocomplete",
     "test:fixture": "tsx scripts/generate-fixtures.ts",
     "test:api": "node dist/server.mjs --config tests/pgconsole.test.toml & PID=$! && node scripts/wait-for-port.mjs 9876 && hurl --test tests/api/*.hurl; EXIT=$?; kill $PID 2>/dev/null; exit $EXIT",
-    "brand": "node scripts/apply-brand.mjs"
+    "brand": "node scripts/apply-brand.mjs",
+    "brand:strict": "node scripts/apply-brand.mjs --strict"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.86",

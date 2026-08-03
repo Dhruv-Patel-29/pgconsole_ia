@@ -80,8 +80,20 @@ same machine share one set of UI-managed connections.
 
 The InfoAnalytica lockup is not stored in this repository. `pnpm build:desktop` and `pnpm dist:win`
 regenerate the logo, favicon, and app icon from `ia_assets/logo.svg` before building, so put the
-lockup there first. Without it the build still succeeds, using neutral placeholder marks and
-Electron's default app icon.
+lockup there first — the file must be named exactly `logo.svg` and sit directly in `ia_assets/`.
+
+`pnpm dist:win` **fails** if it is missing, rather than shipping an installer with placeholder
+art. `pnpm dev` and `pnpm build` fall back to clearly-marked placeholder marks instead, so a
+clone without the lockup still runs.
+
+To check what the script sees without building:
+
+```bash
+pnpm brand
+```
+
+It prints the absolute path it looked for, and lists what is in `ia_assets/` when the file is
+not where it expects.
 
 ## Master password
 

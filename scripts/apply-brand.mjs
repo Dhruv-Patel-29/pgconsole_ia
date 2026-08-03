@@ -12,9 +12,10 @@
  *
  *   node scripts/apply-brand.mjs          generate (placeholders if no master)
  *   node scripts/apply-brand.mjs --check  report what would happen, write nothing
+ *   node scripts/apply-brand.mjs --strict fail if the master is missing (release builds)
  */
 
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { tmpdir } from 'os'
 import { fileURLToPath } from 'url'
@@ -24,6 +25,8 @@ import { spawnSync } from 'child_process'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const MASTER = resolve(ROOT, 'ia_assets/logo.svg')
 const CHECK = process.argv.includes('--check')
+/** Fail instead of writing placeholders. Used by the release builds. */
+const STRICT = process.argv.includes('--strict')
 
 const OUT = {
   appFullLight: 'src/assets/logo-light-full.svg',
@@ -340,14 +343,55 @@ app.whenReady().then(async () => {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * Explain a missing master concretely: the absolute path that was checked, and — when the
+ * directory exists but the file does not — what is actually in it. A wrong filename or an
+ * extra nesting level (ia_assets/ia_assets/logo.svg, which is what unzipping into place
+ * usually produces) is invisible from the relative path alone.
+ */
+function describeMissingMaster() {
+  const dir = resolve(ROOT, 'ia_assets')
+  const lines = [`Looked for: ${MASTER}`]
+  if (!existsSync(dir)) {
+    lines.push(`The ia_assets folder does not exist. Copy it into ${ROOT}.`)
+    return lines
+  }
+  let found = []
+  try {
+    found = readdirSync(dir, { withFileTypes: true }).map((e) => (e.isDirectory() ? `${e.name}/` : e.name))
+  } catch { /* unreadable; the path line above is enough */ }
+  lines.push(
+    found.length
+      ? `ia_assets/ exists and contains: ${found.join(', ')}\n` +
+        `  The file must be named exactly logo.svg and sit directly in ia_assets/.`
+      : 'ia_assets/ exists but is empty.'
+  )
+  return lines
+}
+
 function main() {
   const branded = existsSync(MASTER)
-  console.log(
-    branded
-      ? 'Applying InfoAnalytica branding from ia_assets/logo.svg'
-      : 'ia_assets/logo.svg not found — writing neutral placeholders instead.\n' +
-        'This is expected in a public clone. Drop the lockup in and re-run to brand it.'
-  )
+
+  if (!branded) {
+    const why = describeMissingMaster()
+    if (STRICT) {
+      // Release builds must never ship placeholder art. dist:win passes --strict so an
+      // unbranded installer fails here instead of being discovered after someone installs it.
+      console.error(
+        `\nBrand assets are required for this build, but the lockup is missing.\n\n  ` +
+          why.join('\n  ') +
+          `\n\nThen re-run. To build unbranded on purpose, run \`pnpm brand\` without --strict.\n`
+      )
+      process.exit(1)
+    }
+    console.log(
+      `Writing neutral placeholders — the brand lockup was not found.\n  ` +
+        why.join('\n  ') +
+        `\n  This is expected in a public clone; the UI will show a dotted "logo" box.`
+    )
+  } else {
+    console.log(`Applying InfoAnalytica branding from ${MASTER}`)
+  }
 
   if (!branded) {
     for (const key of ['appFullLight', 'docsFullLight']) write(OUT[key], placeholder({ width: 246, height: 42, dark: false, label: 'logo' }))
