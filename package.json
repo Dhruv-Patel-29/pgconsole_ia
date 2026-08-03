@@ -28,7 +28,7 @@
     "build": "pnpm brand && pnpm gen && pnpm build:server && tsc -b && vite build",
     "build:desktop": "pnpm brand && pnpm gen && tsc -b && vite build && pnpm build:electron",
     "electron:dev": "pnpm build:desktop && electron electron/dist/main.mjs",
-    "clean:release": "node -e \"const fs=require('fs');try{fs.rmSync('release',{recursive:true,force:true})}catch(e){}\"",
+    "clean:release": "node scripts/clean-release.mjs",
     "dist:win": "pnpm clean:release && pnpm build:desktop && electron-builder --win --config electron-builder.yml",
     "dist:win:dir": "pnpm clean:release && pnpm build:desktop && electron-builder --win --dir --config electron-builder.yml",
     "lint": "eslint .",
