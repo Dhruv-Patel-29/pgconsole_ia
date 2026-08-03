@@ -18,6 +18,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, wri
 import { dirname, resolve } from 'path'
 import { tmpdir } from 'os'
 import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
 import { spawnSync } from 'child_process'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -194,18 +195,49 @@ app.whenReady().then(async () => {
   await w.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(
     '<body style="margin:0;background:transparent">' + svg + '</body>'))
   await new Promise((r) => setTimeout(r, 500))
-  writeFileSync(pngPath, (await w.webContents.capturePage()).toPNG())
+  const img = await w.webContents.capturePage()
+  // A hidden transparent window can hand back an empty or wrongly-sized bitmap instead of
+  // throwing, which would write a blank PNG and ship an invisible app icon. Fail instead.
+  const { width, height } = img.getSize()
+  if (img.isEmpty() || width < 512 || height < 512) {
+    throw new Error('capturePage returned ' + width + 'x' + height + ', expected 1024x1024')
+  }
+  writeFileSync(pngPath, img.toPNG())
   app.exit(0)
-}).catch((err) => { console.error(err); app.exit(1) })
+}).catch((err) => { console.error(String(err && err.message || err)); app.exit(1) })
 `
   )
-  const electron = resolve(ROOT, 'node_modules/electron/dist/electron')
-  // Timed out rather than left to block: with no display Electron waits forever instead of
-  // failing, which would hang `pnpm build` on any headless machine.
+  // The electron package's main export is the path to its own executable when required from
+  // plain Node, which is the only cross-platform way to find it: the binary is
+  // dist/electron.exe on Windows, dist/electron on Linux, and inside a .app bundle on macOS.
+  // Hardcoding the Linux path silently fell through to a bare "electron" that Windows cannot
+  // resolve, so this failed as an ENOENT that looked like a 60-second hang.
+  let electronBin
+  try {
+    electronBin = createRequire(import.meta.url)('electron')
+  } catch {
+    /* handled below as a missing binary */
+  }
+  if (typeof electronBin !== 'string' || !existsSync(electronBin)) {
+    if (existsSync(pngAbs)) rmSync(pngAbs)
+    return console.warn(
+      `  ! cannot find the Electron binary, so ${pngRel} was not generated.\n` +
+        `    Run \`pnpm install\` and re-run \`pnpm brand\`. The app icon falls back to\n` +
+        `    Electron's default until then; nothing else is affected.`
+    )
+  }
+
+  // ELECTRON_RUN_AS_NODE is deleted rather than blanked. Windows treats an empty-string
+  // variable as set, which would make the binary run as plain Node and never open a window.
+  const env = { ...process.env }
+  delete env.ELECTRON_RUN_AS_NODE
+
+  // Timed out rather than left to block: with no display Electron waits instead of failing,
+  // which would hang `pnpm build` on a headless machine.
   const res = spawnSync(
-    existsSync(electron) ? electron : 'electron',
+    electronBin,
     [runner, resolve(ROOT, svgRel), resolve(ROOT, pngRel), '--disable-gpu', '--no-sandbox'],
-    { stdio: 'pipe', timeout: 60_000, env: { ...process.env, ELECTRON_RUN_AS_NODE: '' } }
+    { stdio: 'pipe', timeout: 60_000, env }
   )
   if (res.status === 0 && existsSync(resolve(ROOT, pngRel))) {
     console.log(`  ${pngRel}`)
@@ -213,12 +245,19 @@ app.whenReady().then(async () => {
     // Drop any previous PNG. It was rendered from a different lockup, and shipping a stale
     // icon silently is worse than falling back to Electron's default.
     if (existsSync(pngAbs)) rmSync(pngAbs)
-    const stderr = (res.stderr?.toString() ?? '').trim().split('\n').slice(-3).join('\n      ')
+    // Report the spawn error and stderr, not just the exit code. A missing binary and a
+    // missing display both surface as `status: null`, and without these they are
+    // indistinguishable — which is exactly how the Windows failure went undiagnosed.
+    const detail = [
+      res.error ? `${res.error.code ?? ''} ${res.error.message}`.trim() : '',
+      res.signal ? `killed by ${res.signal} (timed out)` : '',
+      (res.stderr?.toString() ?? '').trim().split('\n').slice(-3).join('\n      '),
+    ].filter(Boolean)
     console.warn(
-      `  ! could not rasterize ${pngRel} (Electron exited ${res.status}).\n` +
+      `  ! could not rasterize ${pngRel} (exit ${res.status}).\n` +
         `    The app icon falls back to Electron's default; nothing else is affected.\n` +
-        `    Electron needs a display for this — on a headless Linux box use \`xvfb-run -a pnpm brand\`.` +
-        (stderr ? `\n      ${stderr}` : '')
+        `    On headless Linux this needs a display: \`xvfb-run -a pnpm brand\`.` +
+        (detail.length ? `\n      ${detail.join('\n      ')}` : '')
     )
   }
 }
