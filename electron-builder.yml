@@ -33,15 +33,26 @@ win:
       arch: [x64]
     - target: portable
       arch: [x64]
-  artifactName: '${productName}-${version}-${arch}.${ext}'
+  # No artifactName here on purpose. A win-level template applies to every target, and both of
+  # these emit .exe — so one name meant the portable build silently overwrote the installer,
+  # leaving a file that installs nothing, creates no Start Menu entry, and has to be re-run to
+  # launch the app. Each target names itself below instead.
 
 nsis:
+  # "Setup" in the name so the installer is unmistakable when it is shared with someone.
+  artifactName: '${productName}-Setup-${version}-${arch}.${ext}'
   oneClick: false
+  # Per-user install, so it needs no admin rights. Shortcuts land in the user's own Start Menu.
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: InfoAnalytica
+
+portable:
+  # Runs from wherever it sits and installs nothing — useful for a quick look, but it is NOT
+  # what you hand to someone who expects to install the app. Named so the two cannot be mixed up.
+  artifactName: '${productName}-Portable-${version}-${arch}.${ext}'
 
 # macOS and Linux are configured but untested — Windows is the requested target.
 mac:

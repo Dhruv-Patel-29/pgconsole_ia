@@ -67,6 +67,15 @@ keys inside it are encrypted with AES-256-GCM using a key derived from your
 This is the same location the CLI uses, so a desktop install and `pgconsole --config` on the
 same machine share one set of UI-managed connections.
 
+## Which file to share
+
+`pnpm dist:win` produces two artifacts in `release/`, and they are not interchangeable:
+
+| File | What it does |
+| --- | --- |
+| `InfoAnalytica-Setup-<version>-x64.exe` | **The installer.** Installs per-user (no admin rights), creates Start Menu and desktop shortcuts, and registers an uninstaller. This is the one to hand to someone. |
+| `InfoAnalytica-Portable-<version>-x64.exe` | Runs in place and installs nothing. No Start Menu entry, and it has to be re-run every time to launch the app. Useful for a quick look, not for distribution. |
+
 ## Brand assets
 
 The InfoAnalytica lockup is not stored in this repository. `pnpm build:desktop` and `pnpm dist:win`
