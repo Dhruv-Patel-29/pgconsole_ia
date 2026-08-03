@@ -121,10 +121,21 @@ Three constraints that produced those:
 
 ### App icon
 
-`build/icon.png`, 1024×1024 RGBA: brand-gradient tile, 14% corner radius, white mark at 62% of
-the frame, transparent corners. Rasterised through Electron, which is already a devDependency,
-so no new one is needed — and it therefore needs a display (`xvfb-run -a pnpm brand` when
-headless). If it is skipped the desktop app falls back to Electron's default icon.
+Brand-gradient tile, 14% corner radius, white mark at 62% of the frame, transparent corners.
+Two outputs: `build/icon.png` (1024×1024 RGBA, used by Linux and macOS) and `build/icon.ico`
+(16/24/32/48/64/128/256px, used by Windows).
+
+The `.ico` is generated deliberately rather than left to electron-builder. Given only a PNG,
+electron-builder downloads a helper "icons" bundle into `%LOCALAPPDATA%` to convert it, and on
+a locked-down Windows machine that download fails with `EPERM … rename icons-bundle-xxxx.tmp`
+when antivirus holds the temp file. Packing the `.ico` here means no conversion and no download.
+
+Rasterised through Electron, which is already a devDependency, so no new one is needed — and it
+therefore needs a display (`xvfb-run -a pnpm brand` when headless). Sizes come from one 1024px
+capture downsampled with `nativeImage.resize`, not one window per size: Windows enforces a
+minimum window size, so a 16×16 `BrowserWindow` cannot be captured at all. If the whole step is
+skipped, both files are removed and the desktop app falls back to Electron's default icon —
+never a PNG with a stale or missing `.ico` beside it.
 
 A white tile would disappear into a light Windows taskbar, and the mark's own `#2D2D2D` bubble
 would disappear into a dark one — so the tile carries the gradient and the mark goes white.

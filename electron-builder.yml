@@ -27,6 +27,11 @@ asarUnpack:
   - '**/node_modules/postgres/**'
 
 win:
+  # A real .ico, not the .png. Given only a PNG, electron-builder downloads a helper "icons"
+  # bundle into %LOCALAPPDATA% to convert it, and on a locked-down Windows machine that download
+  # dies with `EPERM ... rename icons-bundle-xxxx.tmp` when antivirus holds the temp file.
+  # scripts/apply-brand.mjs packs the .ico itself, so no conversion and no download happens.
+  icon: build/icon.ico
   # x64 only for now; add arm64 here if you need it.
   target:
     - target: nsis

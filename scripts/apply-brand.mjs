@@ -38,6 +38,7 @@ const OUT = {
   docsFavicon: 'docs/favicon.svg',
   desktopIconSvg: 'build/icon.svg',
   desktopIconPng: 'build/icon.png',
+  desktopIconIco: 'build/icon.ico',
 }
 
 /** Foreground for dark grounds — matches `--foreground` in the .dark theme block. */
@@ -161,19 +162,64 @@ function placeholder({ width, height, dark, label }) {
 // Raster icon
 // ---------------------------------------------------------------------------
 
+/** Sizes packed into the .ico. 256 is the one Windows uses for large tiles. */
+const ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
+
 /**
- * electron-builder needs a real PNG for the app icon; it will not take an SVG. Electron is
- * already a devDependency and carries Chromium, so it does the rasterising and no new
- * dependency is added. If it cannot start (headless CI, no display) the build still works —
- * electron-builder falls back to the stock Electron icon — so this warns and moves on.
+ * Pack already-encoded PNG buffers into a single .ico.
+ *
+ * Windows has accepted PNG-compressed icon entries since Vista, so each size goes in as its
+ * own PNG rather than a BMP — which means no bitmap encoder is needed here.
  */
-function rasterize(svgRel, pngRel) {
-  if (CHECK) return console.log(`  would rasterize ${svgRel} -> ${pngRel}`)
+function packIco(images) {
+  const HEADER = 6
+  const ENTRY = 16
+  const header = Buffer.alloc(HEADER)
+  header.writeUInt16LE(0, 0) // reserved
+  header.writeUInt16LE(1, 2) // 1 = icon
+  header.writeUInt16LE(images.length, 4)
+
+  let offset = HEADER + ENTRY * images.length
+  const entries = images.map(({ size, data }) => {
+    const e = Buffer.alloc(ENTRY)
+    e.writeUInt8(size >= 256 ? 0 : size, 0) // 0 encodes 256
+    e.writeUInt8(size >= 256 ? 0 : size, 1)
+    e.writeUInt8(0, 2) // palette size, 0 for truecolour
+    e.writeUInt8(0, 3) // reserved
+    e.writeUInt16LE(1, 4) // colour planes
+    e.writeUInt16LE(32, 6) // bits per pixel
+    e.writeUInt32LE(data.length, 8)
+    e.writeUInt32LE(offset, 12)
+    offset += data.length
+    return e
+  })
+  return Buffer.concat([header, ...entries, ...images.map((i) => i.data)])
+}
+
+/**
+ * Render the icon SVG to `build/icon.png` (Linux/macOS) and `build/icon.ico` (Windows).
+ *
+ * The .ico matters more than it looks. Given only a PNG, electron-builder downloads a helper
+ * "icons" bundle into %LOCALAPPDATA% to convert it — and on a corporate Windows box that
+ * download fails with `EPERM ... rename icons-bundle-xxxx.tmp` when antivirus holds the
+ * freshly-written temp file. Shipping a real .ico means the conversion never happens and that
+ * whole failure mode disappears.
+ *
+ * Electron is already a devDependency and carries Chromium, so it does the rasterising and no
+ * new dependency is added. If it cannot start (headless, no display) the build still works —
+ * electron-builder falls back to the stock icon — so this warns and moves on.
+ */
+function rasterize(svgRel, pngRel, icoRel) {
+  if (CHECK) return console.log(`  would rasterize ${svgRel} -> ${pngRel}, ${icoRel}`)
   // Launching Electron costs seconds, and this runs on every build. The icon only changes
-  // when the lockup does, so skip it while the PNG is newer than the SVG it came from.
-  const svgAbs = resolve(ROOT, svgRel), pngAbs = resolve(ROOT, pngRel)
-  if (existsSync(pngAbs) && statSync(pngAbs).mtimeMs >= statSync(svgAbs).mtimeMs) {
-    return console.log(`  ${pngRel} (up to date)`)
+  // when the lockup does, so skip it while both outputs are newer than the SVG.
+  const svgAbs = resolve(ROOT, svgRel), pngAbs = resolve(ROOT, pngRel), icoAbs = resolve(ROOT, icoRel)
+  if (
+    existsSync(pngAbs) && existsSync(icoAbs) &&
+    statSync(pngAbs).mtimeMs >= statSync(svgAbs).mtimeMs &&
+    statSync(icoAbs).mtimeMs >= statSync(svgAbs).mtimeMs
+  ) {
+    return console.log(`  ${pngRel}, ${icoRel} (up to date)`)
   }
   // Kept out of the tree so it never shows up as an untracked file.
   const runner = resolve(mkdtempSync(resolve(tmpdir(), 'brand-')), 'rasterize.mjs')
@@ -184,9 +230,15 @@ function rasterize(svgRel, pngRel) {
     // it just hangs to the timeout with nothing on stderr. `transparent: true` plus a
     // transparent body is what makes the tile's rounded corners come out clear (RGBA) rather
     // than boxed in white.
+    // Deliberately captures once at 1024 and downsamples with nativeImage.resize rather than
+    // opening a window per size: Windows enforces a minimum window size, so a 16x16
+    // BrowserWindow cannot be captured at all.
     `import { app, BrowserWindow } from 'electron'
 import { readFileSync, writeFileSync } from 'fs'
-const [svgPath, pngPath] = process.argv.slice(2).filter((a) => !a.startsWith('-'))
+import { join } from 'path'
+const args = process.argv.slice(2).filter((a) => !a.startsWith('-'))
+const [svgPath, pngPath, outDir, sizeList] = args
+const sizes = sizeList.split(',').map(Number)
 app.disableHardwareAcceleration()
 app.whenReady().then(async () => {
   const w = new BrowserWindow({ width: 1024, height: 1024, show: false, frame: false,
@@ -203,6 +255,11 @@ app.whenReady().then(async () => {
     throw new Error('capturePage returned ' + width + 'x' + height + ', expected 1024x1024')
   }
   writeFileSync(pngPath, img.toPNG())
+  for (const s of sizes) {
+    const scaled = img.resize({ width: s, height: s, quality: 'best' })
+    if (scaled.isEmpty()) throw new Error('resize to ' + s + ' produced an empty image')
+    writeFileSync(join(outDir, 'icon-' + s + '.png'), scaled.toPNG())
+  }
   app.exit(0)
 }).catch((err) => { console.error(String(err && err.message || err)); app.exit(1) })
 `
@@ -221,7 +278,7 @@ app.whenReady().then(async () => {
   if (typeof electronBin !== 'string' || !existsSync(electronBin)) {
     if (existsSync(pngAbs)) rmSync(pngAbs)
     return console.warn(
-      `  ! cannot find the Electron binary, so ${pngRel} was not generated.\n` +
+      `  ! cannot find the Electron binary, so ${pngRel}/${icoRel} were not generated.\n` +
         `    Run \`pnpm install\` and re-run \`pnpm brand\`. The app icon falls back to\n` +
         `    Electron's default until then; nothing else is affected.`
     )
@@ -232,19 +289,38 @@ app.whenReady().then(async () => {
   const env = { ...process.env }
   delete env.ELECTRON_RUN_AS_NODE
 
+  const sizeDir = dirname(runner)
+
   // Timed out rather than left to block: with no display Electron waits instead of failing,
   // which would hang `pnpm build` on a headless machine.
   const res = spawnSync(
     electronBin,
-    [runner, resolve(ROOT, svgRel), resolve(ROOT, pngRel), '--disable-gpu', '--no-sandbox'],
+    [
+      runner,
+      resolve(ROOT, svgRel),
+      resolve(ROOT, pngRel),
+      sizeDir,
+      ICO_SIZES.join(','),
+      '--disable-gpu',
+      '--no-sandbox',
+    ],
     { stdio: 'pipe', timeout: 60_000, env }
   )
-  if (res.status === 0 && existsSync(resolve(ROOT, pngRel))) {
+
+  const sizeFiles = ICO_SIZES.map((size) => ({ size, path: resolve(sizeDir, `icon-${size}.png`) }))
+  const haveAllSizes = sizeFiles.every((f) => existsSync(f.path))
+
+  if (res.status === 0 && existsSync(pngAbs) && haveAllSizes) {
+    mkdirSync(dirname(icoAbs), { recursive: true })
+    writeFileSync(icoAbs, packIco(sizeFiles.map((f) => ({ size: f.size, data: readFileSync(f.path) }))))
     console.log(`  ${pngRel}`)
+    console.log(`  ${icoRel} (${ICO_SIZES.join('/')}px)`)
   } else {
-    // Drop any previous PNG. It was rendered from a different lockup, and shipping a stale
-    // icon silently is worse than falling back to Electron's default.
+    // Drop both. A stale icon rendered from a different lockup, or a PNG with no matching .ico,
+    // is worse than falling back to Electron's default — the .ico is what Windows reads, so a
+    // mismatched pair ships the wrong art.
     if (existsSync(pngAbs)) rmSync(pngAbs)
+    if (existsSync(icoAbs)) rmSync(icoAbs)
     // Report the spawn error and stderr, not just the exit code. A missing binary and a
     // missing display both surface as `status: null`, and without these they are
     // indistinguishable — which is exactly how the Windows failure went undiagnosed.
@@ -254,7 +330,7 @@ app.whenReady().then(async () => {
       (res.stderr?.toString() ?? '').trim().split('\n').slice(-3).join('\n      '),
     ].filter(Boolean)
     console.warn(
-      `  ! could not rasterize ${pngRel} (exit ${res.status}).\n` +
+      `  ! could not rasterize ${pngRel}/${icoRel} (exit ${res.status}).\n` +
         `    The app icon falls back to Electron's default; nothing else is affected.\n` +
         `    On headless Linux this needs a display: \`xvfb-run -a pnpm brand\`.` +
         (detail.length ? `\n      ${detail.join('\n      ')}` : '')
@@ -279,7 +355,7 @@ function main() {
     for (const key of ['appIconLight', 'docsIconLight', 'appFavicon', 'docsFavicon']) write(OUT[key], placeholder({ width: 42, height: 42, dark: false }))
     for (const key of ['appIconDark', 'docsIconDark']) write(OUT[key], placeholder({ width: 42, height: 42, dark: true }))
     write(OUT.desktopIconSvg, placeholder({ width: 1024, height: 1024, dark: false }))
-    rasterize(OUT.desktopIconSvg, OUT.desktopIconPng)
+    rasterize(OUT.desktopIconSvg, OUT.desktopIconPng, OUT.desktopIconIco)
     return
   }
 
@@ -315,7 +391,7 @@ function main() {
   write(OUT.docsIconDark, iconDark)
   write(OUT.docsFavicon, iconLight)
   write(OUT.desktopIconSvg, desktopIcon(master))
-  rasterize(OUT.desktopIconSvg, OUT.desktopIconPng)
+  rasterize(OUT.desktopIconSvg, OUT.desktopIconPng, OUT.desktopIconIco)
 }
 
 try {
