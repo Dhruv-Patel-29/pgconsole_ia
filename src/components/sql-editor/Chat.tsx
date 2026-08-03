@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Clipboard, Check, Sparkles, ChevronDown, Database, ArrowLeftToLine, Play, Eraser, Send } from 'lucide-react'
 import { Button } from '../ui/button'
@@ -462,15 +463,12 @@ export function Chat({ connectionId, onInsertSQL, onRunSQL, selectedSchema, sele
         <Sparkles className="size-8 text-gray-300 mb-3" />
         <p className="text-sm text-gray-600 mb-2">AI features not configured</p>
         <p className="text-xs text-gray-400">
-          <a
-            href="https://docs.pgconsole.com/configuration/config#%5B%5Bai.providers%5D%5D"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:underline"
-          >
+          {/* In-app rather than a docs link: providers are managed in Settings in this build,
+              so the link is the action itself instead of instructions for editing a file. */}
+          <Link to="/settings" className="text-primary hover:underline">
             Add an AI provider
-          </a>
-          {' '}to pgconsole.toml to enable Text-to-SQL generation.
+          </Link>
+          {' '}to enable Text-to-SQL generation.
         </p>
       </div>
     )
@@ -736,7 +734,7 @@ const markdownComponents = {
   ol: ({ children }: { children?: React.ReactNode }) => <ol className="list-decimal list-inside mb-1.5 space-y-0.5 text-gray-700">{children}</ol>,
   li: ({ children }: { children?: React.ReactNode }) => <li className="leading-relaxed">{children}</li>,
   strong: ({ children }: { children?: React.ReactNode }) => <strong className="font-semibold text-gray-900">{children}</strong>,
-  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => <a href={href} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">{children}</a>,
   code: ({ children, className }: { children?: React.ReactNode; className?: string }) => {
     const isBlock = className?.includes('language-')
     if (isBlock) {

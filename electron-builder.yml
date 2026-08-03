@@ -1,5 +1,5 @@
 appId: com.infoanalytica.pgconsole
-productName: pgconsole
+productName: InfoAnalytica
 copyright: Copyright © InfoAnalytica
 
 directories:
@@ -41,7 +41,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: pgconsole
+  shortcutName: InfoAnalytica
 
 # macOS and Linux are configured but untested — Windows is the requested target.
 mac:
@@ -53,4 +53,4 @@ linux:
   category: Development
   # Linux defaults executableName to package.json `name`, which is scoped — without this
   # the binary is named "@pgplexpgconsole". Windows and macOS use productName already.
-  executableName: pgconsole
+  executableName: infoanalytica

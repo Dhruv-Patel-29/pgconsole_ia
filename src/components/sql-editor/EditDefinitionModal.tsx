@@ -124,7 +124,7 @@ export function EditDefinitionModal({
               {step === 'edit' ? (
                 <div
                   ref={containerRef}
-                  className="h-full bg-white rounded-lg border border-blue-300 ring-1 ring-blue-100 overflow-auto"
+                  className="h-full bg-white rounded-lg border border-primary/40 ring-1 ring-primary/15 overflow-auto"
                 />
               ) : (
                 <div className="h-full overflow-auto">

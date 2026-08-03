@@ -9,6 +9,7 @@ import { useSetting } from '@/hooks/useSetting';
 import { useConnections } from '@/hooks/useQuery';
 import UserAvatar from './UserAvatar';
 import logoFull from '@/assets/logo-light-full.svg';
+import logoIcon from '@/assets/logo-light-icon.svg';
 
 interface HeaderProps {
   selectedConnectionId: string
@@ -65,13 +66,18 @@ export default function Header({ selectedConnectionId }: HeaderProps) {
             <img src={branding.logo} alt="Logo" className="h-7.5" />
           </a>
         ) : (
-          <button
-            onClick={() => window.open('https://docs.pgconsole.com', '_blank')}
-            className="flex items-center justify-center hover:opacity-80"
-            aria-label="Documentation"
-          >
-            <img src={logoFull} alt="pgconsole docs" className="h-7.5" />
-          </button>
+          // Identity, not a control. The logo is the only place the product is named, so the
+          // alt text carries that name for anyone not seeing the mark.
+          //
+          // Two variants because the lockup is 5.9:1 — at 176px it crowded the connection and
+          // database it shares this bar with, and on a narrow window it covered them outright.
+          // Knowing which database you are pointed at matters more than the wordmark, so the
+          // mark alone holds the narrow case. Only one is ever rendered, so the repeated alt
+          // is never announced twice.
+          <>
+            <img src={logoIcon} alt="InfoAnalytica" className="h-7 sm:hidden" />
+            <img src={logoFull} alt="InfoAnalytica" className="hidden h-6 sm:block" />
+          </>
         )}
 
         {user && !isGuest ? (
@@ -91,7 +97,7 @@ export default function Header({ selectedConnectionId }: HeaderProps) {
                 <div className="text-sm font-medium text-gray-900">{user.name}</div>
                 <div className="text-xs text-gray-500">
                   {user.name !== user.email && <span>{user.email}</span>}
-                  {isOwner && <span className="ml-1 text-blue-600 font-medium">(Owner)</span>}
+                  {isOwner && <span className="ml-1 text-primary font-medium">(Owner)</span>}
                 </div>
               </div>
               <MenuItem onClick={handleSignOut}>

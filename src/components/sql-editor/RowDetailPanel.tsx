@@ -200,7 +200,7 @@ function EditableField({
               onChange(e.target.value)
             }
           }}
-          className="w-full px-2 py-1.5 text-xs bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-2 py-1.5 text-xs bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
         >
           {showDefaultCheckbox && <option value="default">DEFAULT</option>}
           {isNullable && <option value="null">null</option>}
@@ -221,7 +221,7 @@ function EditableField({
           value={editValue}
           onChange={(e) => onChange(e.target.value)}
           placeholder={isNull ? 'null' : ''}
-          className="w-full px-2 py-1.5 text-xs bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px] max-h-64 resize-y font-mono"
+          className="w-full px-2 py-1.5 text-xs bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring min-h-[80px] max-h-64 resize-y font-mono"
           rows={4}
         />
       ) : (
@@ -231,7 +231,7 @@ function EditableField({
           value={editValue}
           onChange={(e) => onChange(e.target.value)}
           placeholder={isNull ? 'null' : ''}
-          className="w-full px-2 py-1.5 text-xs bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-2 py-1.5 text-xs bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
         />
       )}
       <div className="flex items-center gap-4">
@@ -470,7 +470,7 @@ export function RowDetailPanel({
                 {onEdit && (
                   <Tooltip>
                     <TooltipTrigger
-                      className="p-1 rounded hover:text-blue-600 hover:bg-blue-50 disabled:text-gray-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                      className="p-1 rounded hover:text-primary hover:bg-accent disabled:text-gray-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                       onClick={stagedType ? undefined : onEdit}
                       disabled={!!stagedType}
                       tabIndex={-1}
@@ -569,7 +569,7 @@ export function RowDetailPanel({
               >
                 {/* Column header: name + type */}
                 <div className="flex items-center justify-between mb-1">
-                  <span className={`text-xs font-medium truncate ${isModified || isStaged ? 'text-amber-600' : isHighlighted ? 'text-blue-600' : 'text-gray-700'}`}>
+                  <span className={`text-xs font-medium truncate ${isModified || isStaged ? 'text-amber-600' : isHighlighted ? 'text-primary' : 'text-gray-700'}`}>
                     {isEditing ? colName : <HighlightedText text={colName} search={search} />}
                     {col.isPrimaryKey && isNewRow && !col.hasDefault && <span className="ml-1 text-red-500">*</span>}
                     {col.isPrimaryKey && <span className="ml-1 text-gray-400">(PK{isNewRow && !col.hasDefault ? ', required' : ''})</span>}

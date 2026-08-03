@@ -40,3 +40,17 @@ release
 
 # Vendored reference checkout of the upstream OSS repo (its own git repo, not our source)
 pgconsole_oss_original/
+
+# Private brand assets. This repository is a public fork, so the InfoAnalytica lockup and
+# everything generated from it stay out of it. `pnpm brand` (scripts/apply-brand.mjs)
+# regenerates all of these locally from ia_assets/logo.svg, and writes clearly-marked neutral
+# placeholders when that master is absent, so a public clone still builds.
+ia_assets/
+build/
+src/assets/logo-light-full.svg
+src/assets/logo-dark-full.svg
+src/assets/logo-light-icon.svg
+src/assets/logo-dark-icon.svg
+public/favicon.svg
+docs/favicon.svg
+docs/logo/

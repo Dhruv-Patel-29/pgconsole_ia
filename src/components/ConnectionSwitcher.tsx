@@ -91,17 +91,11 @@ export function ConnectionSwitcher({ selectedConnectionId }: ConnectionSwitcherP
         <Button variant="outline" size="sm" onClick={() => navigate('/settings')}>
           <Settings size={14} /> Add a connection
         </Button>
-        <span className="text-xs">
-          (or check{' '}
-          <a
-            href="https://docs.pgconsole.com/configuration/iam-permissions"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:underline"
-          >
-            IAM permissions
-          </a>
-          )
+        {/* The upstream copy pointed at IAM docs here. Dropped rather than rebranded: each
+            person connects as their own Postgres user in this deployment, so a missing
+            connection is never an IAM grant problem and the hint sent people the wrong way. */}
+        <span className="text-xs text-muted-foreground">
+          Connections are stored on this machine only.
         </span>
       </div>
     )

@@ -47,7 +47,7 @@ export function TabBar({ tabs, activeTabId, onTabSelect, className }: TabBarProp
         >
           {tab.label}
           {activeTabId === tab.id && (
-            <div className="absolute bottom-0 left-1 right-1 h-0.5 bg-blue-500 rounded-full" />
+            <div className="absolute bottom-0 left-1 right-1 h-0.5 bg-primary rounded-full" />
           )}
         </div>
       ))}

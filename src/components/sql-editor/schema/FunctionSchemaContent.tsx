@@ -127,7 +127,7 @@ export function FunctionSchemaContent({
                     <button
                       type="button"
                       onClick={() => onViewSchema?.(dep.schema, dep.name, dep.type as ObjectType, dep.arguments || undefined)}
-                      className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      className="text-sm text-primary hover:text-primary/80 hover:underline"
                     >
                       {displayName}
                     </button>

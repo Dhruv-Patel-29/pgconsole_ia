@@ -2,15 +2,15 @@
 title: Configure External Access
 ---
 
-pgconsole listens on port `9876` by default (configurable via `--port`). You can access it directly or put it behind a reverse proxy.
+InfoAnalytica listens on port `9876` by default (configurable via `--port`). You can access it directly or put it behind a reverse proxy.
 
 ## Direct Access
 
-Users access pgconsole directly at its host and port.
+Users access InfoAnalytica directly at its host and port.
 
 ```mermaid
 flowchart LR
-    Browser --> pgconsole["pgconsole :9876"]
+    Browser --> console["InfoAnalytica :9876"]
 ```
 
 No additional configuration is needed.
@@ -21,19 +21,19 @@ A reverse proxy handles TLS termination and exposes pgconsole on a public domain
 
 ```toml pgconsole.toml
 [general]
-external_url = "https://pgconsole.example.com"
+external_url = "https://console.infoanalytica.com"
 ```
 
 ```mermaid
 flowchart LR
-    Browser -->|external_url| Proxy -->|internal_url| pgconsole
+    Browser -->|external_url| Proxy -->|internal_url| console
 ```
 
 ### Nginx
 
 ```nginx
 server {
-    server_name pgconsole.example.com;
+    server_name console.infoanalytica.com;
 
     location / {
         proxy_pass http://localhost:9876;
@@ -50,7 +50,7 @@ server {
 Caddy provides automatic HTTPS with Let's Encrypt.
 
 ```caddy
-pgconsole.example.com {
+console.infoanalytica.com {
     reverse_proxy localhost:9876
 }
 ```
@@ -63,29 +63,29 @@ Use an Ingress resource to expose pgconsole with TLS termination inside a Kubern
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: pgconsole-ingress
+  name: infoanalytica-ingress
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - pgconsole.example.com
-      secretName: pgconsole-tls
+        - console.infoanalytica.com
+      secretName: infoanalytica-tls
   rules:
-    - host: pgconsole.example.com
+    - host: console.infoanalytica.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: pgconsole
+                name: infoanalytica
                 port:
                   number: 9876
 ```
 
-The `pgconsole-tls` Secret holds your TLS certificate. If you use [cert-manager](https://cert-manager.io/), add the annotation `cert-manager.io/cluster-issuer` to provision it automatically.
+The `infoanalytica-tls` Secret holds your TLS certificate. If you use [cert-manager](https://cert-manager.io/), add the annotation `cert-manager.io/cluster-issuer` to provision it automatically.
 
 ### Kubernetes Gateway API
 
@@ -95,35 +95,35 @@ The [Gateway API](https://gateway-api.sigs.k8s.io/) is the successor to Ingress.
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: pgconsole-gateway
+  name: infoanalytica-gateway
 spec:
   gatewayClassName: nginx
   listeners:
     - name: https
       protocol: HTTPS
       port: 443
-      hostname: pgconsole.example.com
+      hostname: console.infoanalytica.com
       tls:
         mode: Terminate
         certificateRefs:
-          - name: pgconsole-tls
+          - name: infoanalytica-tls
     - name: http-redirect
       protocol: HTTP
       port: 80
-      hostname: pgconsole.example.com
+      hostname: console.infoanalytica.com
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: pgconsole-route
+  name: infoanalytica-route
 spec:
   parentRefs:
-    - name: pgconsole-gateway
+    - name: infoanalytica-gateway
   hostnames:
-    - pgconsole.example.com
+    - console.infoanalytica.com
   rules:
     - backendRefs:
-        - name: pgconsole
+        - name: infoanalytica
           port: 9876
 ```
 

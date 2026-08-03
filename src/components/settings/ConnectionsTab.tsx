@@ -150,7 +150,7 @@ export function ConnectionsTab({ canStoreSecrets }: { canStoreSecrets: boolean }
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3">
           <p className="text-sm text-amber-900">
             Delete connection <strong>{confirmDelete.name}</strong>? This removes the saved
-            credentials from pgconsole. The database itself is not touched.
+            credentials from InfoAnalytica. The database itself is not touched.
           </p>
           <div className="mt-3 flex gap-2">
             <Button

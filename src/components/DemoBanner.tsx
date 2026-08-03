@@ -1,19 +1,20 @@
 import { FlaskConical, ArrowRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export function DemoBanner() {
   return (
-    <div className="flex h-10 items-center justify-center gap-2 bg-[#2f63f0] text-sm font-medium text-white">
+    <div className="flex h-10 items-center justify-center gap-2 bg-primary text-sm font-medium text-primary-foreground">
       <FlaskConical size={14} />
-      <span>Demo Mode - </span>
-      <a
-        href="https://docs.pgconsole.com/getting-started/quickstart"
-        target="_blank"
-        rel="noopener noreferrer"
+      <span>Demo mode &mdash; this is a sample database</span>
+      {/* Points at Settings rather than the upstream quickstart: connections are added through
+          the UI in this build, so the recovery is two clicks away and needs no external page. */}
+      <Link
+        to="/settings"
         className="inline-flex items-center gap-1 underline underline-offset-2 hover:opacity-90"
       >
-        Specify --config to connect to your database
+        Add a connection
         <ArrowRight size={14} />
-      </a>
+      </Link>
     </div>
   )
 }

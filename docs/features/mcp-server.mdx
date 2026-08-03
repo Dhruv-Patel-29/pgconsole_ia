@@ -2,13 +2,13 @@
 title: MCP Server
 ---
 
-pgconsole exposes a remote [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server so external AI agents — Claude Code, Cursor, VS Code Copilot, Windsurf, and others — can work with the Postgres connections pgconsole manages.
+InfoAnalytica exposes a remote [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server so external AI agents — Claude Code, Cursor, VS Code Copilot, Windsurf, and others — can work with the Postgres connections InfoAnalytica manages.
 
 Unlike handing an agent a raw connection string, every MCP request is **governed**: it runs as a defined [agent](/configuration/config#agents) principal, is gated by [Access Control (IAM)](/features/database-access-control), is checked per statement, and is recorded in the [Audit Log](/features/audit-log).
 
 ## Endpoint
 
-The server is mounted on the running pgconsole instance over Streamable HTTP:
+The server is mounted on the running InfoAnalytica instance over Streamable HTTP:
 
 ```
 POST <external_url>/mcp
@@ -91,7 +91,7 @@ One tool per IAM permission. Each appears only if the agent holds that permissio
 
 ## Enforcement
 
-Every execution tool runs the submitted SQL through pgconsole's parser-based permission detection before touching the database:
+Every execution tool runs the submitted SQL through InfoAnalytica's parser-based permission detection before touching the database:
 
 1. The SQL is parsed; each statement's required permission must match the tool's permission. A `DROP` sent to `query`, or a mixed-class batch, is rejected — there is no smuggling a privileged statement through a lower-privileged tool.
 2. The full set of permissions the SQL requires (including ones implied by function calls, e.g. `pg_terminate_backend` requires `admin`) must be a subset of the agent's grants.

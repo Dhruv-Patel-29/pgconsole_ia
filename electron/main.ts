@@ -70,7 +70,10 @@ function createWindow(url: string): void {
     minHeight: 600,
     show: false,
     backgroundColor: '#ffffff',
-    title: 'pgconsole',
+    // Window/taskbar label only. The app *name* stays 'pgconsole' (set in env.ts) because
+    // userData resolves from it — renaming that would strand every existing install's saved
+    // connections and master password in the old %APPDATA% folder.
+    title: 'InfoAnalytica',
     webPreferences: {
       // The renderer is untrusted-by-default web content that talks to a local HTTP
       // server. It needs no Node access, so don't grant any.

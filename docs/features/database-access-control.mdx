@@ -2,7 +2,7 @@
 title: Database Access Control
 ---
 
-pgconsole provides fine-grained access control for your database connections. You define [IAM rules](/configuration/config#access-control-iam) in your configuration file, and pgconsole enforces them — rejecting unauthorized queries before they reach the database.
+InfoAnalytica provides fine-grained access control for your database connections. You define [IAM rules](/configuration/config#access-control-iam) in your configuration file, and InfoAnalytica enforces them — rejecting unauthorized queries before they reach the database.
 
 <Info>IAM is **opt-in**. With no `[[iam]]` rules defined, every authenticated user has full access to all connections. Enforcement begins the moment you define your first rule — from then on, any user without a matching rule is denied.</Info>
 
@@ -15,7 +15,7 @@ flowchart LR
   IAM -.->|Denied| R[Reject]
 ```
 
-Unlike PostgreSQL's built-in role system (`GRANT`/`REVOKE`), pgconsole's access control operates at the application layer. You don't need to create database roles for each user — all users connect through shared credentials while pgconsole enforces per-user permissions, controls application-level features like export, and logs every action for [auditing](/features/audit-log).
+Unlike PostgreSQL's built-in role system (`GRANT`/`REVOKE`), InfoAnalytica's access control operates at the application layer. You don't need to create database roles for each user — all users connect through shared credentials while InfoAnalytica enforces per-user permissions, controls application-level features like export, and logs every action for [auditing](/features/audit-log).
 
 ![IAM Permission Denied](/images/features/database-access-control/iam-permission-denied.webp)
 

@@ -1,27 +1,44 @@
+<h1 align="center">InfoAnalytica</h1>
+
+<h3 align="center">Internal Postgres console</h3>
+
 > [!NOTE]
-> pgplex: The Postgres Toolchain for Humans and Agents - **pgconsole** · [pgschema](https://github.com/pgplex/pgschema) · [pgtui](https://github.com/pgplex/pgtui) · [pgparser](https://github.com/pgplex/pgparser)
-> 
-> Brought to you by [Bytebase](https://www.bytebase.com/), open-source database DevSecOps platform.
+> This is InfoAnalytica's internal fork of [pgplex/pgconsole](https://github.com/pgplex/pgconsole)
+> (Apache&nbsp;2.0), rebranded and extended for in-house use. It is not a public product and is
+> not distributed outside InfoAnalytica.
+>
+> Upstream credit: pgconsole is built by [pgplex](https://github.com/pgplex) and
+> [Bytebase](https://www.bytebase.com/).
 
-![](https://raw.githubusercontent.com/pgplex/website/refs/heads/main/public/banner-pgconsole.png)
+A web-based PostgreSQL console. Each person installs their own copy and connects with their own
+Postgres user, so the database does the authorizing and the console concentrates on being a fast,
+legible client: a real Postgres parser behind the editor, staged edits with a diff preview, and a
+schema-aware AI assistant that can run against a local model.
 
-<table align="center"><tr><td>
-  <img src="https://raw.githubusercontent.com/pgplex/pgconsole/main/website/public/sql-editor-overview.webp" alt="pgconsole SQL editor" />
-</td></tr></table>
+See [PRODUCT.md](PRODUCT.md) for who this is for and what it deliberately does not do, and
+[DESIGN.md](DESIGN.md) for the visual system.
 
-**pgconsole** is a web-based PostgreSQL editor. Single binary, single config file, no database required. Connect your team to PostgreSQL with access control and audit logging built in.
+## Brand assets
 
-<a href="https://www.star-history.com/?repos=pgplex%2Fpgconsole&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=pgplex/pgconsole&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=pgplex/pgconsole&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=pgplex/pgconsole&type=date&legend=top-left" />
- </picture>
-</a>
+The InfoAnalytica lockup is a company asset and is **not** in this repository, which is a public
+fork. Every logo-bearing file the app builds against is generated and git-ignored:
+
+```bash
+pnpm brand      # regenerate from ia_assets/logo.svg
+```
+
+`pnpm dev`, `pnpm build`, and `pnpm build:desktop` run this for you. With the master lockup at
+`ia_assets/logo.svg` you get the real branding; without it you get clearly-marked neutral
+placeholders, so a fresh clone still builds and runs. To brand your own checkout, drop the
+lockup at `ia_assets/logo.svg` and build as usual.
+
+The app icon step needs a display, since it rasterises through Electron. On a headless Linux
+machine run `xvfb-run -a pnpm brand`; if it is skipped the only consequence is that the desktop
+app falls back to Electron's default icon.
 
 ## Installation
 
-Visit https://docs.pgconsole.com/getting-started/quickstart
+See [docs/getting-started/quickstart.mdx](docs/getting-started/quickstart.mdx).
 
 ### Prerequisites
 
@@ -180,8 +197,8 @@ api_key = "sk-ant-..."
 
 ## Getting Help
 
-- [Docs](https://www.pgconsole.com)
-- [GitHub Issues](https://github.com/pgplex/pgconsole/issues)
+- [Docs](docs/)
+- Upstream issues: [pgplex/pgconsole](https://github.com/pgplex/pgconsole/issues)
 
 ## Development
 
@@ -196,8 +213,3 @@ pnpm dev        # Start dev server (frontend + backend)
 pnpm build      # Production build
 pnpm test       # Run all tests
 ```
-## Sponsor
-
-[Bytebase](https://www.bytebase.com?utm_sourcepgconsole) - open source, web-based database DevSecOps platform.
-
-<a href="https://www.bytebase.com?utm_sourcepgconsole"><img src="https://raw.githubusercontent.com/pgplex/pgschema/main/docs/images/bytebase.webp" /></a>

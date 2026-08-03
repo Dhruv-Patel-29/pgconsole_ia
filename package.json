@@ -22,11 +22,11 @@
     "build:server": "node scripts/build-server.mjs",
     "build:electron": "node scripts/build-electron.mjs",
     "build:server:watch": "node scripts/build-server.mjs --watch --dev",
-    "dev": "pnpm gen && pnpm build:server -- --dev && concurrently \"pnpm dev:vite\" \"pnpm dev:server\"",
+    "dev": "pnpm brand && pnpm gen && pnpm build:server -- --dev && concurrently \"pnpm dev:vite\" \"pnpm dev:server\"",
     "dev:vite": "node scripts/wait-for-port.mjs 9876 && vite",
     "dev:server": "concurrently \"pnpm build:server:watch\" \"node scripts/sleep.mjs 2 && node --watch dist/server.mjs --config pgconsole.toml\"",
-    "build": "pnpm gen && pnpm build:server && tsc -b && vite build",
-    "build:desktop": "pnpm gen && tsc -b && vite build && pnpm build:electron",
+    "build": "pnpm brand && pnpm gen && pnpm build:server && tsc -b && vite build",
+    "build:desktop": "pnpm brand && pnpm gen && tsc -b && vite build && pnpm build:electron",
     "electron:dev": "pnpm build:desktop && electron electron/dist/main.mjs",
     "dist:win": "pnpm build:desktop && electron-builder --win --config electron-builder.yml",
     "dist:win:dir": "pnpm build:desktop && electron-builder --win --dir --config electron-builder.yml",
@@ -39,7 +39,8 @@
     "test:format": "vitest tests/sql-format",
     "test:autocomplete": "vitest tests/sql-autocomplete",
     "test:fixture": "tsx scripts/generate-fixtures.ts",
-    "test:api": "node dist/server.mjs --config tests/pgconsole.test.toml & PID=$! && node scripts/wait-for-port.mjs 9876 && hurl --test tests/api/*.hurl; EXIT=$?; kill $PID 2>/dev/null; exit $EXIT"
+    "test:api": "node dist/server.mjs --config tests/pgconsole.test.toml & PID=$! && node scripts/wait-for-port.mjs 9876 && hurl --test tests/api/*.hurl; EXIT=$?; kill $PID 2>/dev/null; exit $EXIT",
+    "brand": "node scripts/apply-brand.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.86",

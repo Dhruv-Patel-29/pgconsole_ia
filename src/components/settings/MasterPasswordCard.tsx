@@ -101,7 +101,7 @@ export function MasterPasswordCard() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-gray-600">
-            Required before pgconsole can save database passwords or AI provider API keys.
+            Required before InfoAnalytica can save database passwords or AI provider API keys.
             Secrets are encrypted with a key derived from this password.
           </p>
           <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">

@@ -347,9 +347,9 @@ function createRewritingTooltipGlobal(): HTMLElement {
   container.className = 'cm-rewriting-indicator'
   container.innerHTML = `
     <div class="flex gap-1">
-      <span class="size-2 rounded-full bg-blue-400 animate-bounce"></span>
-      <span class="size-2 rounded-full bg-blue-400 animate-bounce" style="animation-delay: 0.1s"></span>
-      <span class="size-2 rounded-full bg-blue-400 animate-bounce" style="animation-delay: 0.2s"></span>
+      <span class="size-2 rounded-full bg-primary/70 animate-bounce"></span>
+      <span class="size-2 rounded-full bg-primary/70 animate-bounce" style="animation-delay: 0.1s"></span>
+      <span class="size-2 rounded-full bg-primary/70 animate-bounce" style="animation-delay: 0.2s"></span>
     </div>
     <span>Rewriting with AI...</span>
   `

@@ -177,7 +177,7 @@ function Pagination({
             onClick={() => onPageChange(page)}
             className={`min-w-[20px] h-5 px-1 rounded text-xs font-medium transition-colors ${
               page === currentPage
-                ? 'bg-white border border-blue-500 text-blue-600'
+                ? 'bg-white border border-primary text-primary'
                 : 'text-gray-600 hover:bg-accent'
             }`}
           >
@@ -413,8 +413,8 @@ function ResultContent({ result, filter, allDisplayRows, displayRows, canonicalI
                 <span className="truncate">{col.name}</span>
                 {sort?.column === col.name && (
                   sort.direction === 'asc'
-                    ? <ArrowUp className="w-3 h-3 shrink-0 text-blue-600" />
-                    : <ArrowDown className="w-3 h-3 shrink-0 text-blue-600" />
+                    ? <ArrowUp className="w-3 h-3 shrink-0 text-primary" />
+                    : <ArrowDown className="w-3 h-3 shrink-0 text-primary" />
                 )}
               </TooltipTrigger>
               <TooltipContent side="bottom" sideOffset={4}>
@@ -446,7 +446,7 @@ function ResultContent({ result, filter, allDisplayRows, displayRows, canonicalI
                     : status === 'staged-update'
                       ? 'bg-amber-100'
                       : isSelected
-                        ? 'bg-blue-50'
+                        ? 'bg-primary/8'
                         : 'bg-white hover:bg-gray-50'
               }`
 
@@ -518,7 +518,7 @@ function ResultContent({ result, filter, allDisplayRows, displayRows, canonicalI
                       }
                     }}
                   >
-                    <Pin className="w-3 h-3 text-blue-400" />
+                    <Pin className="w-3 h-3 text-primary" />
                   </div>
                 </div>
               )
@@ -549,7 +549,7 @@ function ResultContent({ result, filter, allDisplayRows, displayRows, canonicalI
                   : status === 'staged-update'
                     ? 'bg-amber-100'
                     : isSelected
-                      ? 'bg-blue-50'
+                      ? 'bg-primary/8'
                       : 'hover:bg-gray-50'
             }`
 

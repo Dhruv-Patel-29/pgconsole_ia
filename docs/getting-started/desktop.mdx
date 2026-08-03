@@ -1,9 +1,9 @@
 ---
 title: "Desktop App (Windows)"
-description: "Build and run pgconsole as a native Windows application."
+description: "Build and run InfoAnalytica as a native Windows application."
 ---
 
-pgconsole ships as a desktop app in addition to the server. The desktop build wraps the
+InfoAnalytica ships as a desktop app in addition to the server. The desktop build wraps the
 same Express server and SPA in an Electron shell, so there is no Docker, no separate Node
 install, and no `pgconsole.toml` required — connections are managed from the UI.
 
@@ -67,9 +67,16 @@ keys inside it are encrypted with AES-256-GCM using a key derived from your
 This is the same location the CLI uses, so a desktop install and `pgconsole --config` on the
 same machine share one set of UI-managed connections.
 
+## Brand assets
+
+The InfoAnalytica lockup is not stored in this repository. `pnpm build:desktop` and `pnpm dist:win`
+regenerate the logo, favicon, and app icon from `ia_assets/logo.svg` before building, so put the
+lockup there first. Without it the build still succeeds, using neutral placeholder marks and
+Electron's default app icon.
+
 ## Master password
 
-Before pgconsole will save a database password or an AI provider API key, you set a master
+Before InfoAnalytica will save a database password or an AI provider API key, you set a master
 password under **Settings → Security**. The encryption key is derived from it with scrypt;
 the password itself is never stored.
 
@@ -78,7 +85,7 @@ There is no recovery if you lose the master password. Saved credentials would ha
 re-entered.
 </Warning>
 
-On later launches the store starts locked and pgconsole asks for the master password once,
+On later launches the store starts locked and InfoAnalytica asks for the master password once,
 at startup. This is expected rather than lost data: the encryption key is derived from the
 password and never written to disk, so there is nothing for a restart to remember it with.
 

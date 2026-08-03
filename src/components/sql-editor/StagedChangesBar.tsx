@@ -29,7 +29,7 @@ export function StagedChangesBar({ count, onClear, onPreview }: StagedChangesBar
       >
         <Eye className="w-4 h-4" />
         <span>Preview Changes</span>
-        <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-500 rounded-full">
+        <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
           {count}
         </span>
       </Button>

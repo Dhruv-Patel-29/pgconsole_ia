@@ -14,24 +14,33 @@
   -moz-osx-font-smoothing: grayscale;
 
   --radius: 0;
+
+  /* InfoAnalytica brand, straight off ia_assets/logo.svg. These two are the identity and are
+     used as-is for graphics only — never behind text. #6C63FF carries just 4.32:1 against
+     white, so anything that has to hold a white label uses --primary below instead. */
+  --brand: oklch(0.597 0.224 279.8); /* #6C63FF */
+  --brand-accent: oklch(0.662 0.240 309.8); /* #BF59FE */
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.553 0.219 264.6); /* #2f63f0 */
+  /* The brand violet held one notch darker so white labels clear 4.5:1 (4.65:1). Same hue as
+     --brand, so the two read as one colour; the difference only shows up in a contrast meter. */
+  --primary: oklch(0.58 0.224 279.8); /* #685df9 */
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.96 0.02 258.8);
-  --secondary-foreground: oklch(0.3 0.1 258.8);
-  --muted: oklch(0.96 0.015 258.8);
-  --muted-foreground: oklch(0.5 0.05 258.8);
-  --accent: oklch(0.96 0.02 258.8);
-  --accent-foreground: oklch(0.3 0.1 258.8);
+  --secondary: oklch(0.96 0.02 279.8);
+  --secondary-foreground: oklch(0.3 0.1 279.8);
+  --muted: oklch(0.96 0.015 279.8);
+  --muted-foreground: oklch(0.5 0.05 279.8);
+  --accent: oklch(0.96 0.02 279.8);
+  --accent-foreground: oklch(0.3 0.1 279.8);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.6 0.15 258.8);
+  --ring: oklch(0.6 0.15 279.8);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -39,13 +48,16 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.553 0.219 264.6); /* #2f63f0 */
+  --sidebar-primary: oklch(0.58 0.224 279.8); /* #685df9 */
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.96 0.02 258.8);
-  --sidebar-accent-foreground: oklch(0.3 0.1 258.8);
-  --sidebar-border: oklch(0.92 0.02 258.8);
-  --sidebar-ring: oklch(0.6 0.15 258.8);
+  --sidebar-accent: oklch(0.96 0.02 279.8);
+  --sidebar-accent-foreground: oklch(0.3 0.1 279.8);
+  --sidebar-border: oklch(0.92 0.02 279.8);
+  --sidebar-ring: oklch(0.6 0.15 279.8);
   --destructive-foreground: var(--color-red-700);
+  /* Info stays blue on purpose. It is a status colour, and the brand is now violet — if
+     notices turned violet too, "this is informational" and "this is InfoAnalytica" would be
+     the same signal, and neither would read. */
   --info: var(--color-blue-500);
   --info-foreground: var(--color-blue-700);
   --success: var(--color-emerald-500);
@@ -62,6 +74,8 @@ body {
 
 @theme inline {
   --animate-skeleton: skeleton 2s -1s infinite linear;
+  --color-brand: var(--brand);
+  --color-brand-accent: var(--brand-accent);
   --color-warning-foreground: var(--warning-foreground);
   --color-warning: var(--warning);
   --color-success-foreground: var(--success-foreground);
@@ -122,18 +136,18 @@ body {
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.55 0.2 258.8);
+  --primary: oklch(0.55 0.2 279.8); /* #6059e1 - white label 5.21:1 */
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.25 0.04 258.8);
+  --secondary: oklch(0.25 0.04 279.8);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.25 0.03 258.8);
-  --muted-foreground: oklch(0.65 0.08 258.8);
-  --accent: oklch(0.25 0.04 258.8);
+  --muted: oklch(0.25 0.03 279.8);
+  --muted-foreground: oklch(0.65 0.08 279.8);
+  --accent: oklch(0.25 0.04 279.8);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.55 0.18 258.8);
+  --ring: oklch(0.55 0.18 279.8);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -141,12 +155,12 @@ body {
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.55 0.2 258.8);
+  --sidebar-primary: oklch(0.55 0.2 279.8);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.25 0.04 258.8);
+  --sidebar-accent: oklch(0.25 0.04 279.8);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.55 0.18 258.8);
+  --sidebar-ring: oklch(0.55 0.18 279.8);
   --destructive-foreground: var(--color-red-400);
   --info: var(--color-blue-500);
   --info-foreground: var(--color-blue-400);

@@ -1,6 +1,6 @@
 # AI Prompts Architecture
 
-This document maps all AI prompts used in pgconsole, their entry points, and conversation flows.
+This document maps all AI prompts used in InfoAnalytica, their entry points, and conversation flows.
 
 ## Prompt Locations
 

@@ -155,7 +155,7 @@ function ObjectItem({
       <div
         className={cn(
           "group flex items-center gap-1 w-full px-2 py-0.5 text-[13px] text-gray-700 rounded cursor-pointer",
-          isSelected ? "bg-blue-100 text-blue-900" : "hover:bg-gray-50"
+          isSelected ? "bg-primary/15 text-accent-foreground" : "hover:bg-gray-50"
         )}
         onClick={onClick}
         onDoubleClick={onDoubleClick}

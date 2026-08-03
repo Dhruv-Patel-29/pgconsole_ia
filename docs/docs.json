@@ -4,11 +4,11 @@
   "fonts": {
     "family": "DM Sans"
   },
-  "name": "pgconsole",
+  "name": "InfoAnalytica",
   "colors": {
-    "primary": "#2f63f0",
-    "light": "#8fb4ff",
-    "dark": "#1e44c8"
+    "primary": "#685DF9",
+    "light": "#BF59FE",
+    "dark": "#6C63FF"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -76,15 +76,10 @@
     "links": [
       {
         "type": "github",
-        "label": "pgplex/pgconsole",
+        "label": "Upstream: pgplex/pgconsole",
         "href": "https://github.com/pgplex/pgconsole"
       }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Live Demo",
-      "href": "https://demo.pgconsole.com"
-    }
+    ]
   },
   "footer": {
     "socials": {
