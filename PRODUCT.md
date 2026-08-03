@@ -126,8 +126,12 @@ Binding assets and values:
 - **Brand color:** a violet-to-magenta gradient, `#6C63FF` → `#BF59FE`, taken from the logo
   itself. This replaces the incumbent blue `#2f63f0`.
 
-Undecided: the product's display name inside the app, and whether the existing
-`BrandingConfig` slot is the mechanism or the branding is hardcoded.
+**Name:** the app is **iA Console**; InfoAnalytica is the company that owns it. The company
+name was used as the app name initially and read oddly in a Start Menu. The logo carries the
+company identity; the app name is what appears in the OS.
+
+Undecided: whether the existing `BrandingConfig` slot is the mechanism or the branding stays
+hardcoded.
 
 ## Evidence on Hand
 

@@ -73,7 +73,10 @@ function createWindow(url: string): void {
     // Window/taskbar label only. The app *name* stays 'pgconsole' (set in env.ts) because
     // userData resolves from it — renaming that would strand every existing install's saved
     // connections and master password in the old %APPDATA% folder.
-    title: 'InfoAnalytica',
+    //
+    // This is the title before the page loads; index.html's <title> takes over after that, so
+    // the two have to agree or the window name visibly changes a moment after launch.
+    title: 'iA Console',
     webPreferences: {
       // The renderer is untrusted-by-default web content that talks to a local HTTP
       // server. It needs no Node access, so don't grant any.

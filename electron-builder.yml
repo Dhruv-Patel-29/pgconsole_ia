@@ -1,5 +1,9 @@
+# appId stays as-is even though productName is now "iA Console". It is an internal identity
+# Windows and macOS use to recognise the app across versions, not a display name — changing it
+# would make every future release look like a different application. The copyright is the
+# company's, which is correct; only the app's *name* stopped being the company's.
 appId: com.infoanalytica.pgconsole
-productName: InfoAnalytica
+productName: iA Console
 copyright: Copyright © InfoAnalytica
 
 directories:
@@ -45,19 +49,21 @@ win:
 
 nsis:
   # "Setup" in the name so the installer is unmistakable when it is shared with someone.
-  artifactName: '${productName}-Setup-${version}-${arch}.${ext}'
+  # Space-free on purpose: productName is "iA Console", and a filename with a space in it
+  # is awkward to share, download and script around.
+  artifactName: 'iA-Console-Setup-${version}-${arch}.${ext}'
   oneClick: false
   # Per-user install, so it needs no admin rights. Shortcuts land in the user's own Start Menu.
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: InfoAnalytica
+  shortcutName: iA Console
 
 portable:
   # Runs from wherever it sits and installs nothing — useful for a quick look, but it is NOT
   # what you hand to someone who expects to install the app. Named so the two cannot be mixed up.
-  artifactName: '${productName}-Portable-${version}-${arch}.${ext}'
+  artifactName: 'iA-Console-Portable-${version}-${arch}.${ext}'
 
 # macOS and Linux are configured but untested — Windows is the requested target.
 mac:
@@ -69,4 +75,4 @@ linux:
   category: Development
   # Linux defaults executableName to package.json `name`, which is scoped — without this
   # the binary is named "@pgplexpgconsole". Windows and macOS use productName already.
-  executableName: infoanalytica
+  executableName: ia-console

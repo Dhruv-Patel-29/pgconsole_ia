@@ -150,9 +150,20 @@ what monospace is *for*, and replacing the typeface is a redesign rather than a 
 
 ## Naming
 
-The product is named by its logo, never in body text. No "InfoAnalytica Console" string exists in
-the UI; the browser tab reads `InfoAnalytica` and the logo's `alt` carries the name for anyone
-not seeing the mark.
+**The app is "iA Console"; the company is InfoAnalytica.** The company name was the app name at
+first, which reads oddly in a Start Menu — a company does not belong in a list of applications.
+So `productName`, the NSIS shortcut, the window title, and the browser tab all say `iA Console`,
+while the logo carries the company identity and the copyright stays InfoAnalytica's.
+
+The window title and the browser tab must agree: Electron's `BrowserWindow` title applies only
+until the page loads, after which `index.html`'s `<title>` wins. Set one without the other and
+the window visibly renames itself a moment after launch.
+
+Beyond the logo's `alt` text, no body copy names the app. The sign-in line still refers to an
+"InfoAnalytica account", which is correct — that account is the company's, not the app's.
+
+`appId` remains `com.infoanalytica.pgconsole`: it is how the OS recognises the app across
+versions, not a display name.
 
 **Functional identifiers are not branding and must not be renamed:** `pgconsole.toml`,
 `pgconsole.db`, `PGCONSOLE_*`, the `pgconsole` CLI name, `@pgplex/pgconsole`, the
